@@ -1,0 +1,64 @@
+{
+  "apiBase": "http://127.0.0.1:5000/api",
+  "dashboardApiKey": "",
+  "amapSecurityJsCode": "e98c1e66e3af8374196a23330a73c99a",
+  "amapKey": "8ee7d72a579c10d2df34c3fc9ed6f3df",
+
+  "patrolRobotId": "RBT-01",
+
+  // ---------- 安保巡检：原 HTTP 轮询任务卡片（已改为 ROS 任务态时可关）----------
+  "patrolTaskStatusPollMs": 0,
+
+  "patrolRawCamera": {
+    "source": "mjpeg_api",
+    "mjpegPath": "/patrol/camera-mjpeg"
+  },
+
+  // ---------- rosbridge WebSocket ----------
+  "rosbridge": {
+    "url": "ws://192.168.11.11:9090",
+    "reconnectDelayMs": 4000,
+    "connectOnPatrolPageOnly": false
+  },
+
+  /*
+   * ---------- ROS 话题（按功能分组）----------
+   * 消息类型须与 rosbridge 注册一致；未配置的话题对应功能不订阅。
+   */
+  "rosTopics": {
+    // --- 定位（WGS-84，首页地图会转 GCJ-02）---
+    "navSatFix": "/fix",
+    "navSatFixMessageType": "sensor_msgs/NavSatFix",
+    "navSatFixEmitIntervalMs": 3000,
+
+    // --- 违停检测可视化画面（巡检页相机区）；CompressedImage 比 Image+JPEG 在 rosbridge 上更省带宽与 JSON 体积 ---
+    "detectionVisualizationTopic": "/ebik_violation_ros/vis",
+    "detectionVisualizationMessageType": "sensor_msgs/CompressedImage",
+
+    // --- 电量 / 速度 / 手动 cmd_vel（仅巡检页）---
+    "battery": "/battery_state",
+    "batteryMessageType": "rpp_msgs/BatteryState",
+    "speed": "/odom",
+    "speedMessageType": "nav_msgs/Odometry",
+    "cmdVel": "/cmd_vel",
+    "cmdVelMessageType": "geometry_msgs/Twist",
+
+    // --- 行为树状态（std_msgs/String，约 100ms 一发；前端按下方间隔采样，默认 1s）---
+    "controllerStatus": "/controller_node/status",
+    "controllerStatusMessageType": "std_msgs/String",
+    "controllerStatusSampleIntervalMs": 1000,
+
+    // --- 电动车违停：与 violation_detection 同一帧；String 仅在 has_violation 为 true 时发布 ---
+    "violationHasViolation": "/ebik_violation_ros/has_violation",
+    "violationHasViolationMessageType": "std_msgs/Bool",
+    "violationDetection": "/ebik_violation_ros/violation_detection",
+    "violationDetectionMessageType": "std_msgs/String",
+    "violationBoolStringMaxSkewMs": 200
+  },
+
+  "robotControl": {
+    "linearScale": 0.25,
+    "angularScale": 0.5,
+    "publishRateHz": 10
+  }
+}

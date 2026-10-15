@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local configuration and secrets
+backend/.env
+config/patrol_ssh.json
+
+# Runtime data
+backend/media/
+backend/staticfiles/
+*.log
+
+# OS and editor files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="xMidYMid meet" width="369.666" height="104.993" overflow="hidden" style="display: block;" viewBox="0 0 369.666 104.993" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 30">
+<path id="Vector 4" d="M0 104.993V1.59888L57.0876 13.324L114.643 51.697L228.351 63.9551L306.027 81.5428L369.666 99.1304V104.993H0Z" fill="url(#paint0_linear_0_7)" fill-opacity="0.32"/>
+<path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M0 2.75603L56.2775 14.4299L113.539 52.7508L113.826 52.9432L114.171 52.9815L228.135 65.6416L304.828 82.5069L369.064 101.026V98.5584L305.571 79.7903L305.178 81.1423L305.483 79.7678L228.671 62.8765L228.598 62.8604L228.523 62.8521L114.828 50.2219L57.6252 11.9398L57.3957 11.7862L57.1249 11.73L0 0V2.75603Z" fill="url(#paint1_linear_0_7)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_7" x1="185.301" y1="1.06592" x2="184.694" y2="104.992" gradientUnits="userSpaceOnUse">
+<stop stop-color="#05C2F6"/>
+<stop offset="1" stop-color="#08F5E2" stop-opacity="0.23"/>
+</linearGradient>
+<linearGradient id="paint1_linear_0_7" x1="6.0831" y1="-7.99436" x2="375.257" y2="70.2297" gradientUnits="userSpaceOnUse">
+<stop stop-color="#04BDF8"/>
+<stop offset="1" stop-color="#08FCDF"/>
+</linearGradient>
+</defs>
+</svg>

@@ -1,0 +1,17 @@
+<svg preserveAspectRatio="xMidYMid meet" width="30" height="30" overflow="hidden" style="display: block;" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Frame" filter="url(#filter0_d_0_15)">
+<path id="Vector" d="M13.2426 19.3137L9 15.071L10.4142 13.6568L13.2426 16.4853L18.8995 10.8284L20.3137 12.2426L13.2426 19.3137Z" fill="var(--fill-0, white)"/>
+<path id="Vector_2" fill-rule="evenodd" clip-rule="evenodd" d="M4 15C4 8.92487 8.92487 4 15 4C21.0751 4 26 8.92487 26 15C26 21.0751 21.0751 26 15 26C8.92487 26 4 21.0751 4 15ZM15 24C10.0294 24 6 19.9706 6 15C6 10.0294 10.0294 6 15 6C19.9706 6 24 10.0294 24 15C24 19.9706 19.9706 24 15 24Z" fill="var(--fill-0, white)"/>
+</g>
+<defs>
+<filter id="filter0_d_0_15" x="-1" y="-1" width="32" height="32" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset/>
+<feGaussianBlur stdDeviation="2"/>
+<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.4 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_15"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_15" result="shape"/>
+</filter>
+</defs>
+</svg>

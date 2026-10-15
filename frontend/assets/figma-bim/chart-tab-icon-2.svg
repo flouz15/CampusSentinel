@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="xMidYMid meet" width="18" height="18" overflow="hidden" style="display: block;" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Frame" clip-path="url(#clip0_0_23)">
+<path id="Vector" d="M9.00001 14.25C7.55026 14.25 6.23779 13.6624 5.28773 12.7124L9.00001 9V3.75C11.8995 3.75 14.25 6.10051 14.25 9C14.25 11.8995 11.8995 14.25 9.00001 14.25Z" fill="var(--fill-0, white)"/>
+<path id="Vector_2" fill-rule="evenodd" clip-rule="evenodd" d="M17.25 9C17.25 13.5563 13.5563 17.25 8.99998 17.25C4.44363 17.25 0.74998 13.5563 0.74998 9C0.74998 4.44365 4.44363 0.75 8.99998 0.75C13.5563 0.75 17.25 4.44365 17.25 9ZM15.75 9C15.75 12.7279 12.7279 15.75 8.99998 15.75C5.27206 15.75 2.24998 12.7279 2.24998 9C2.24998 5.27208 5.27206 2.25 8.99998 2.25C12.7279 2.25 15.75 5.27208 15.75 9Z" fill="var(--fill-0, white)"/>
+</g>
+<defs>
+<clipPath id="clip0_0_23">
+<rect width="18" height="18" fill="white"/>
+</clipPath>
+</defs>
+</svg>

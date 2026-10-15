@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>校园智能巡检 · 态势大屏</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="preload" as="style" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/search-ui.css" />
+    <link rel="stylesheet" href="css/patrol-robot.css" />
+    <style>
+      /* 高德地图容器样式 */
+      .amap-container {
+        width: 100%;
+        height: 100%;
+      }
+      /* 隐藏高德地图logo */
+      .amap-logo, .amap-copyright {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 动态背景元素 -->
+    <div class="particles-bg" id="particlesBg"></div>
+    <div class="grid-bg"></div>
+    <div class="pulse-ring-bg"></div>
+    <div class="scan-line"></div>
+
+    <div class="screen">
+      <header class="topbar">
+        <div class="logo">
+          <img class="logo-mark" src="./assets/logo-mark.svg" alt="logo" />
+          <div class="logo-text">
+            <div class="logo-row">
+              <span class="logo-word-text">校园智能巡检</span>
+              <span class="logo-beta-text">试运行</span>
+            </div>
+            <div class="logo-sub">态势可视化</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item is-active" data-page="home">首页</button>
+          <button class="nav-item" data-page="patrol">安保巡检</button>
+        </nav>
+        <div class="status">
+          <div class="status-item weather">
+            <div>
+              <div class="status-label">天气</div>
+              <div class="status-value">--</div>
+            </div>
+          </div>
+          <div class="status-item time">
+            <div class="status-value" id="clock">--:--:--</div>
+            <div class="status-label" id="date">----</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="pages">
+        <section class="page is-active" data-page="home">
+          <main class="layout">
+            <section class="panel left">
+              <div class="card figma-card">
+                <div class="figma-title">
+                  <span class="figma-title-icon" aria-hidden="true"></span>
+                  <span>区域监控</span>
+                  <span class="figma-title-meta">实时滚动</span>
+                </div>
+                <div id="areaMonitorScroll">
+                  <!-- 滚动列表由 JS 动态生成 -->
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title card-title-split">
+                  <span>电动车违停识别次数</span>
+                  <span class="card-title-tag" id="homeEvParkingRangeTag">近30天</span>
+                </div>
+                <div class="category-pie-wrap">
+                  <div class="category-pie" id="homeCategoryPie"><span id="homeCategoryPieTotal">0</span></div>
+                  <div class="category-legend" id="homeCategoryLegend">
+                    <!-- 饼图图例由 JS 动态生成 -->
+                  </div>
+                </div>
+                <div class="rank-table" id="homeCategoryRank">
+                  <!-- 识别标签排行由 JS 动态生成 -->
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title card-title-split">
+                  <span>处置节奏与关注点</span>
+                  <span class="card-title-tag" id="homeCategoryFilterTag">全部类型</span>
+                </div>
+                <div class="filter-pill-row" id="homeFilterPills">
+                  <!-- 筛选胶囊由 JS 动态生成 -->
+                </div>
+                <div class="filter-picker" id="homeFilterPicker"></div>
+                <div class="chips" id="homeAlertChips">
+                  <!-- 关注标签由 JS 动态生成 -->
+                </div>
+                <div class="mini-chart" id="homeAlertMiniChart">
+                  <!-- 近8条事件节奏由 JS 动态生成 -->
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">24小时告警时段分布</div>
+                <div class="hourly-bars" id="homeHourlyBars">
+                  <!-- 时段分布由 JS 动态生成 -->
+                </div>
+                <div class="hourly-legend" id="homeHourlyLegend">
+                  <!-- 时段标签由 JS 动态生成 -->
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">高发点位 TOP5</div>
+                <div class="hotspot-rank" id="homeHotspotRank">
+                  <!-- 高发点位由 JS 动态生成 -->
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">处置闭环漏斗</div>
+                <div class="status-funnel" id="homeStatusFunnel">
+                  <!-- 闭环漏斗由 JS 动态生成 -->
+                </div>
+              </div>
+            </section>
+
+            <section class="panel center">
+              <div class="card map-card">
+                <div class="card-title card-title-split">
+                  <span>校园态势地图</span>
+                  <span class="card-title-tag">实时联动</span>
+                </div>
+                <div class="map">
+                  <div class="map-command-panel is-collapsed" id="homeMapCommandPanel">
+                    <div class="map-command-head">
+                      <div>
+                        <div class="map-command-eyebrow">指挥台快捷入口</div>
+                        <strong>地图检索与联动控制</strong>
+                      </div>
+                      <div class="map-command-actions">
+                        <button class="map-command-toggle" type="button" id="homeMapCommandToggleBtn">展开控制台</button>
+                        <button class="map-command-refresh" type="button" onclick="campusMap.refreshAlerts()">刷新态势</button>
+                      </div>
+                    </div>
+                    <div class="search-toolbar">
+                      <input type="text" id="searchInput" class="search-input" placeholder="搜索地址或POI（如：图书馆、西安市雁塔区）">
+                      <button class="search-btn" onclick="handleSearch()">搜索</button>
+                      <button class="search-btn secondary" onclick="clearSearch()">清除</button>
+                    </div>
+                    <div class="function-buttons">
+                      <button class="func-btn" onclick="quickSearchPOI('图书馆')"><span class="func-btn-mark"></span><span>图书馆</span></button>
+                      <button class="func-btn" onclick="quickSearchPOI('食堂')"><span class="func-btn-mark"></span><span>食堂</span></button>
+                      <button class="func-btn" onclick="quickSearchPOI('停车场')"><span class="func-btn-mark"></span><span>停车场</span></button>
+                      <button class="func-btn" onclick="quickSearchPOI('超市')"><span class="func-btn-mark"></span><span>超市</span></button>
+                      <button class="func-btn" onclick="campusMap.refreshWeather()"><span class="func-btn-mark"></span><span>刷新天气</span></button>
+                      <button class="func-btn" onclick="toggleMapLayer('normal')" id="btn-normal"><span class="func-btn-mark"></span><span>普通图</span></button>
+                      <button class="func-btn" onclick="toggleMapLayer('dark')" id="btn-dark"><span class="func-btn-mark"></span><span>暗色图</span></button>
+                    </div>
+                  </div>
+                  <div id="leaflet-map" class="leaflet-map-container"></div>
+                  <div class="map-overlay">
+                    <div class="overlay-item">
+                      <span class="label">当前告警</span>
+                      <span class="value" id="homeOverlayActiveAlerts">0</span>
+                    </div>
+                    <div class="overlay-item">
+                      <span class="label">处理中</span>
+                      <span class="value" id="homeOverlayProcessing">0</span>
+                    </div>
+                    <div class="overlay-item">
+                      <span class="label">闭环率</span>
+                      <span class="value" id="homeOverlayClosedLoop">--</span>
+                    </div>
+                  </div>
+                  <div class="map-focus-card">
+                    <div class="map-focus-label">当前焦点事件</div>
+                    <div class="map-focus-status" id="homeFocusStatus">--</div>
+                    <div class="map-focus-title" id="homeFocusTitle">--</div>
+                    <div class="map-focus-meta" id="homeFocusMeta">--</div>
+                    <div class="map-focus-desc" id="homeFocusDesc">--</div>
+                    <button class="map-focus-btn" id="homeFocusActionBtn" type="button">查看事件详情</button>
+                  </div>
+                  <div class="result-panel" id="resultPanel">
+                    <div class="result-header">
+                      <span class="result-title" id="resultTitle">搜索结果</span>
+                      <button class="result-close" onclick="closeResultPanel()">×</button>
+                    </div>
+                    <div class="result-content" id="resultContent">
+                      <div class="loading">加载中</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stats-row-wrap">
+                <div class="stats-row-head">
+                  <span>治理量化指标</span>
+                  <button type="button" class="metrics-help-btn" id="homeMetricsHelpBtn" title="查看指标口径说明">口径说明</button>
+                </div>
+                <div class="stats-row">
+                <div class="stat-card">
+                  <div class="stat-label">闭环率</div>
+                  <div class="stat-value" id="homeStatClosedLoop">0%</div>
+                  <div class="stat-trend" id="homeStatClosedLoopTrend">工单闭环</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">平均处置时长</div>
+                  <div class="stat-value" id="homeStatAvgHandle">0m</div>
+                  <div class="stat-trend" id="homeStatAvgHandleTrend">工单口径</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">夜间覆盖率</div>
+                  <div class="stat-value" id="homeStatNightCoverage">0%</div>
+                  <div class="stat-trend" id="homeStatNightCoverageTrend">20:00-06:00</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">高风险热区数</div>
+                  <div class="stat-value" id="homeStatHotspotCount">0</div>
+                  <div class="stat-trend" id="homeStatHotspotCountTrend">TopN</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel right">
+              <div class="card profile-card home-gps-card">
+                <div class="profile-head">
+                  <div>
+                    <div class="profile-id">定位状况</div>
+                    <div class="profile-name">ROS NavSatFix · 首页地图联动</div>
+                  </div>
+                </div>
+                <div class="home-gps-body">
+                  <div class="home-gps-status-row">
+                    <span id="homeGpsStatusBadge" class="home-gps-badge is-muted">载入中…</span>
+                  </div>
+                  <dl class="home-gps-coords">
+                    <div class="home-gps-coord-row">
+                      <dt>纬度</dt>
+                      <dd id="homeGpsLat">--</dd>
+                    </div>
+                    <div class="home-gps-coord-row">
+                      <dt>经度</dt>
+                      <dd id="homeGpsLng">--</dd>
+                    </div>
+                  </dl>
+                  <p class="home-gps-hint" id="homeGpsHint"></p>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">处置任务清单</div>
+                <div class="alert-list" id="homeAlertList">
+                  <div class="alert-item">
+                    <span class="alert-dot high"></span>
+                    <div>
+                      <div class="alert-title">北门违规停车</div>
+                      <div class="alert-meta">09:12 · 车牌 粤12345</div>
+                    </div>
+                    <span class="alert-state">待处置</span>
+                  </div>
+                  <div class="alert-item">
+                    <span class="alert-dot medium"></span>
+                    <div>
+                      <div class="alert-title">未戴头盔</div>
+                      <div class="alert-meta">09:05 · 教学楼一区</div>
+                    </div>
+                    <span class="alert-state">处理中</span>
+                  </div>
+                  <div class="alert-item">
+                    <span class="alert-dot low"></span>
+                    <div>
+                      <div class="alert-title">占用消防通道</div>
+                      <div class="alert-meta">08:46 · 学生活动中心</div>
+                    </div>
+                    <span class="alert-state">已处理</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card home-robot-status-card">
+                <div class="card-title">机器人任务状态</div>
+                <div class="home-robot-status-body">
+                  <div class="home-robot-status-line">
+                    <span class="home-robot-status-k">机器人 ID</span>
+                    <span id="homeRobotPatrolId" class="home-robot-status-v">--</span>
+                  </div>
+                  <div class="home-robot-status-line">
+                    <span class="home-robot-status-k">rosbridge</span>
+                    <span id="homeRobotRosConn" class="home-robot-status-v">--</span>
+                  </div>
+                  <div class="home-robot-status-line">
+                    <span class="home-robot-status-k">行为树状态</span>
+                    <span id="homeRobotBtStatus" class="home-robot-status-v">--</span>
+                  </div>
+                  <div class="home-robot-status-line">
+                    <span class="home-robot-status-k">本页累计违规</span>
+                    <span id="homeRobotViolationCount" class="home-robot-status-v">0</span>
+                  </div>
+                  <div class="home-robot-violation-preview" id="homeRobotViolationPreview" hidden>
+                    <div class="home-robot-violation-preview-label">最近违规则场</div>
+                    <img id="homeRobotViolationFrame" alt="违规则场" class="home-robot-violation-frame" />
+                    <div class="home-robot-violation-meta" id="homeRobotViolationMeta"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title">今日数据概览</div>
+                <div class="stats-grid">
+                  <div class="stat-item">
+                    <div class="stat-icon stat-icon-complete">完</div>
+                    <div class="stat-info">
+                      <div class="stat-number" id="homeOverviewResolved">0</div>
+                      <div class="stat-label">已完成</div>
+                    </div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-icon stat-icon-processing">处</div>
+                    <div class="stat-info">
+                      <div class="stat-number" id="homeOverviewProcessing">0</div>
+                      <div class="stat-label">处理中</div>
+                    </div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-icon stat-icon-pending">待</div>
+                    <div class="stat-info">
+                      <div class="stat-number" id="homeOverviewPending">0</div>
+                      <div class="stat-label">待处置</div>
+                    </div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-icon stat-icon-online">警</div>
+                    <div class="stat-info">
+                      <div class="stat-number" id="homeOverviewActiveAlerts">0</div>
+                      <div class="stat-label">当前告警</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+
+          <footer class="bottom" id="footer-home"></footer>
+        </section>
+
+
+        <section class="page" data-page="patrol">
+          <div class="patrol-robot-layout">
+            <div class="patrol-robot-main">
+              <div class="robot-camera-card">
+                <div class="robot-camera-card-head">
+                  <div class="card-title">巡检机器人视角</div>
+                  <button type="button" class="robot-detection-vis-toggle" id="robotDetectionVisToggleBtn">
+                    显示违停检测结果
+                  </button>
+                </div>
+                <div class="robot-camera-viewport">
+                  <img id="robotPatrolMjpegImg" class="robot-patrol-mjpeg" alt="原始子码流" hidden />
+                  <canvas id="robotCameraCanvas" width="640" height="480"></canvas>
+                  <img id="robotCameraImg" alt="" width="640" height="480" hidden />
+                </div>
+                <div id="rosConnectionStatus" class="ros-status">未连接 rosbridge</div>
+              </div>
+            </div>
+            <aside class="patrol-robot-side">
+              <div class="battery-sphere-wrap">
+                <div class="side-label">电量</div>
+                <div class="battery-sphere-inner">
+                  <div id="batterySphere"></div>
+                  <span id="batteryPercentLabel">--</span>
+                </div>
+              </div>
+              <div class="speed-chart-card">
+                <div class="side-label">速度</div>
+                <canvas id="speedChartCanvas" width="320" height="140"></canvas>
+              </div>
+              <div class="robot-manual-card">
+                <div class="side-label">手动控制（geometry_msgs/Twist）</div>
+                <div id="robotManualControl">
+                  <p class="robot-keyboard-hint" id="robotKeyboardHint" hidden>
+                    使用键盘 <kbd>W</kbd> <kbd>S</kbd> 前进 / 后退，<kbd>A</kbd> <kbd>D</kbd> 左转 / 右转
+                  </p>
+                  <button type="button" class="robot-cmd-btn robot-manual-toggle" id="robotManualToggleBtn">
+                    启用手动控制
+                  </button>
+                </div>
+              </div>
+              <div class="robot-start-task-card">
+                <div class="side-label">远程启动（SSH）</div>
+                <button type="button" class="patrol-start-task-btn" id="patrolStartTaskBtn">
+                  开始任务
+                </button>
+                <p class="patrol-start-task-hint" id="patrolStartTaskHint" hidden></p>
+              </div>
+              <div class="robot-task-status-card">
+                <div class="side-label">实时任务状态</div>
+                <div id="patrolTaskStatusBody" class="robot-task-status-body">
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">机器人 ID</span>
+                    <span id="patrolTaskRobotId" class="robot-task-status-v">--</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">巡检任务类型</span>
+                    <span id="patrolTaskMissionType" class="robot-task-status-v">电动车违停检测</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">巡检任务 ID</span>
+                    <span id="patrolTaskMissionId" class="robot-task-status-v">--</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">检测到违规次数</span>
+                    <span id="patrolViolationCount" class="robot-task-status-v">0</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">任务进度</span>
+                    <span id="patrolTaskProgress" class="robot-task-status-v">--</span>
+                  </div>
+                  <p class="robot-task-status-foot" id="patrolTaskStatusFoot"></p>
+                </div>
+              </div>
+            </aside>
+          </div>
+          <footer class="bottom" id="footer-patrol"></footer>
+        </section>
+
+      </div>
+    </div>
+
+    <div id="stageDetailOverlay" class="stage-detail-overlay" hidden>
+      <div class="stage-detail-backdrop" data-close-stage-detail="true"></div>
+      <aside id="stageDetailPanel" class="stage-detail-panel" aria-label="事件详情聚焦台">
+        <div class="stage-detail-head">
+          <div>
+            <div class="stage-detail-kicker">事件详情</div>
+            <h3 id="stageDetailTitle">请选择地图事件</h3>
+            <p id="stageDetailSubtitle">点击地图标记或右侧告警列表，这里会展示联动详情、状态推进和跳转入口。</p>
+          </div>
+          <button id="stageDetailCloseBtn" class="stage-detail-close" type="button" aria-label="关闭详情面板">×</button>
+        </div>
+        <div class="stage-detail-body">
+          <div class="stage-detail-badges">
+            <span id="stageDetailStatus" class="stage-detail-badge is-pending">待联动</span>
+            <span id="stageDetailLevel" class="stage-detail-badge">普通</span>
+          </div>
+          <div class="stage-detail-grid">
+            <div class="stage-detail-kv">
+              <label>事件来源</label>
+              <span id="stageDetailSource">地图联动</span>
+            </div>
+            <div class="stage-detail-kv">
+              <label>定位坐标</label>
+              <span id="stageDetailLocation">--</span>
+            </div>
+            <div class="stage-detail-kv">
+              <label>上报编号</label>
+              <span id="stageDetailReportId">--</span>
+            </div>
+            <div class="stage-detail-kv">
+              <label>处置建议</label>
+              <span id="stageDetailAction">建议点击右下方按钮继续联动</span>
+            </div>
+          </div>
+          <div class="stage-timeline-block">
+            <div class="stage-timeline-head">
+              <strong>闭环时间线</strong>
+              <span id="stageTimelineStatus" class="stage-timeline-status">等待加载</span>
+            </div>
+            <ul id="stageTimelineList" class="stage-timeline-list">
+              <li class="stage-timeline-item is-empty">
+                <span class="stage-timeline-time">--:--</span>
+                <div>
+                  <div class="stage-timeline-title">暂无事件</div>
+                  <div class="stage-timeline-meta">点击地图标记后，这里会展示真实日志。</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="stage-detection-block">
+            <div class="stage-timeline-head">
+              <strong>检测结果摘要</strong>
+              <span id="stageDetectionStatus" class="stage-timeline-status">等待加载</span>
+            </div>
+            <div id="stageDetectionSummary" class="stage-detection-summary">
+              <div class="stage-detection-grid">
+                <div class="stage-detail-kv">
+                  <label>检测状态</label>
+                  <span id="stageDetectionStateValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>识别标签</label>
+                  <span id="stageDetectionLabelValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>置信度</label>
+                  <span id="stageDetectionConfidenceValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>模型名称</label>
+                  <span id="stageDetectionModelValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>???</label>
+                  <span id="stageDetectionPlateValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>????</label>
+                  <span id="stageDetectionPlateConfidenceValue">--</span>
+                </div>
+              </div>
+              <div class="stage-evidence-preview">
+                <div class="stage-evidence-head">
+                  <strong>证据画面</strong>
+                  <span id="stageEvidenceStatus" class="stage-timeline-status">等待加载</span>
+                </div>
+                <div id="stageEvidenceFrame" class="stage-evidence-frame is-empty">
+                  <img id="stageEvidenceImage" alt="证据画面" hidden />
+                  <div id="stageEvidenceEmpty" class="stage-evidence-empty">暂无证据画面</div>
+                </div>
+              </div>
+              <div class="stage-detection-actions">
+                <a id="stageDetectionLink" class="stage-detail-link" href="#">打开检测记录</a>
+                <a id="stageEvidenceLink" class="stage-detail-link" href="#">查看原始证据</a>
+                <button id="stageCopyPlateBtn" type="button" class="stage-detail-link" disabled>?????</button>
+              </div>
+            </div>
+          </div>
+          <div class="stage-ticket-block">
+            <div class="stage-timeline-head">
+              <strong>工单执行摘要</strong>
+              <span id="stageTicketStatusText" class="stage-timeline-status">等待加载</span>
+            </div>
+            <div class="stage-ticket-summary">
+              <div class="stage-ticket-grid">
+                <div class="stage-detail-kv">
+                  <label>负责人</label>
+                  <span id="stageTicketAssigneeValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>责任单位</label>
+                  <span id="stageTicketDepartmentValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>工单状态</label>
+                  <span id="stageTicketStateValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>SLA 进度</label>
+                  <span id="stageTicketSlaValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>已耗时长</label>
+                  <span id="stageTicketElapsedValue">--</span>
+                </div>
+                <div class="stage-detail-kv">
+                  <label>处置说明</label>
+                  <span id="stageTicketMessageValue">--</span>
+                </div>
+              </div>
+              <div class="stage-ticket-load">
+                <div class="stage-ticket-load-grid">
+                  <div class="stage-detail-kv">
+                    <label>负责人当前未完成</label>
+                    <span id="stageTicketAssigneeLoadValue">--</span>
+                  </div>
+                  <div class="stage-detail-kv">
+                    <label>责任单位待办</label>
+                    <span id="stageTicketDepartmentLoadValue">--</span>
+                  </div>
+                  <div class="stage-detail-kv">
+                    <label>调度建议</label>
+                    <span id="stageTicketAdviceValue">--</span>
+                  </div>
+                </div>
+              </div>
+              <div class="stage-ticket-actions">
+                <a id="stageTicketDirectLink" class="stage-detail-link" href="#">查看工单详情</a>
+              </div>
+            </div>
+          </div>
+          <div class="stage-detail-actions">
+            <button id="stageProcessBtn" class="stage-detail-btn stage-detail-btn-warn" type="button">转处理中</button>
+            <button id="stageResolveBtn" class="stage-detail-btn stage-detail-btn-ok" type="button">标记已解决</button>
+            <a id="stageAlertLink" class="stage-detail-link" href="#">打开告警中心</a>
+            <a id="stageTicketLink" class="stage-detail-link" href="#">打开工单页</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="stageActionModal" class="stage-action-modal" hidden>
+      <div class="stage-action-backdrop" data-close-stage-action="true"></div>
+      <div class="stage-action-panel" role="dialog" aria-modal="true" aria-labelledby="stageActionModalTitle">
+        <div class="stage-action-head">
+          <div>
+            <strong id="stageActionModalTitle">确认处置</strong>
+            <p id="stageActionModalSubtitle">请填写处置原因后再提交，系统会同步更新时间线和工单摘要。</p>
+          </div>
+          <button id="stageActionModalClose" class="stage-action-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="stage-action-body">
+          <div class="stage-detail-kv">
+            <label>当前事件</label>
+            <span id="stageActionModalEvent">--</span>
+          </div>
+          <div class="stage-action-grid">
+            <input id="stageActionModalAssignee" class="stage-action-input" type="text" placeholder="负责人，可选" />
+            <textarea id="stageActionModalReason" class="stage-action-input" rows="4" placeholder="请填写本次处置原因或现场说明" required></textarea>
+          </div>
+          <div id="stageActionModalStatus" class="stage-timeline-status">等待确认</div>
+          <div class="stage-detail-actions">
+            <button id="stageActionModalCancel" class="stage-detail-btn" type="button">取消</button>
+            <button id="stageActionModalConfirm" class="stage-detail-btn stage-detail-btn-ok" type="button">确认提交</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="metricsHelpModal" class="stage-action-modal" hidden>
+      <div class="stage-action-backdrop" data-close-metrics-help="true"></div>
+      <div class="stage-action-panel" role="dialog" aria-modal="true" aria-labelledby="metricsHelpTitle">
+        <div class="stage-action-head">
+          <div>
+            <strong id="metricsHelpTitle">指标口径说明</strong>
+            <p id="metricsHelpSubtitle">以下内容由 Django 后端指标接口提供。</p>
+          </div>
+          <button id="metricsHelpCloseBtn" class="stage-action-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="stage-action-body">
+          <div id="metricsHelpBody" class="status-line" data-level="ok">暂无指标口径说明</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/load-config.js"></script>
+    <script>
+      (function () {
+        function loadScript(src, onload) {
+          var s = document.createElement('script');
+          s.src = src;
+          s.onload = onload;
+          s.onerror = function () {
+            console.error('[script]', src);
+          };
+          document.body.appendChild(s);
+        }
+        window.__DASHBOARD_CONFIG_READY__.then(function (cfg) {
+          cfg = cfg || {};
+          window._AMapSecurityConfig = {
+            securityJsCode: cfg.amapSecurityJsCode || '',
+          };
+          var key = encodeURIComponent(cfg.amapKey || '');
+          loadScript(
+            'https://webapi.amap.com/maps?v=2.0&key=' + key + '&plugin=AMap.Scale,AMap.ToolBar,AMap.ControlBar',
+            function () {
+              loadScript('js/dashboard-app.js', function () {
+                loadScript('https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js', function () {
+                  loadScript('js/ros-patrol.js');
+                });
+              });
+            }
+          );
+        });
+      })();
+    </script>
+  </body>
+</html>

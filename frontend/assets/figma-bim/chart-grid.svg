@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="xMidYMid meet" width="371" height="143.899" overflow="hidden" style="display: block;" viewBox="0 0 371 143.899" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="line" opacity="0.6">
+<line id="Line 1" x1="0.500006" y1="2.65525e-08" x2="0.5" y2="143.899" stroke="var(--stroke-0, white)"/>
+<line id="Line 8" x1="370.5" y1="2.65525e-08" x2="370.5" y2="143.899" stroke="var(--stroke-0, white)"/>
+<line id="Line 3" x1="62.2671" y1="18.1206" x2="62.2671" y2="143.899" stroke="var(--stroke-0, white)" stroke-opacity="0.43"/>
+<line id="Line 4" x1="124.034" y1="33.0435" x2="124.034" y2="143.899" stroke="var(--stroke-0, white)" stroke-opacity="0.43"/>
+<line id="Line 5" x1="185.801" y1="42.6367" x2="185.801" y2="143.899" stroke="var(--stroke-0, white)" stroke-opacity="0.43"/>
+<line id="Line 6" x1="247.568" y1="55.4278" x2="247.568" y2="143.899" stroke="var(--stroke-0, white)" stroke-opacity="0.43"/>
+<line id="Line 2" x1="1.17815e-05" y1="143.399" x2="371" y2="143.399" stroke="var(--stroke-0, white)"/>
+</g>
+</svg>

@@ -1,0 +1,520 @@
+/* 安保巡检 · 机器人视角 */
+.page[data-page='patrol'].is-active {
+  flex: 1;
+  min-height: 0;
+}
+
+.page[data-page='patrol'].is-active .layout {
+  display: none;
+}
+
+.patrol-robot-layout {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+  padding: 12px 16px 20px;
+  box-sizing: border-box;
+}
+
+.page[data-page='patrol'].is-active .patrol-robot-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1;
+}
+
+.patrol-robot-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.patrol-robot-main .card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e8f4ff;
+  letter-spacing: 0.02em;
+}
+
+.robot-camera-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.robot-camera-card-head .card-title {
+  margin: 0;
+}
+
+.robot-detection-vis-toggle {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 123, 44, 0.45);
+  background: rgba(255, 123, 44, 0.12);
+  color: #ffc9a8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.robot-detection-vis-toggle:hover {
+  background: rgba(255, 123, 44, 0.22);
+  border-color: rgba(255, 123, 44, 0.65);
+}
+
+.robot-detection-vis-toggle.is-active {
+  background: rgba(37, 246, 255, 0.15);
+  border-color: rgba(37, 246, 255, 0.5);
+  color: #b8f4ff;
+}
+
+.robot-camera-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  background: linear-gradient(145deg, rgba(12, 22, 34, 0.95), rgba(8, 14, 22, 0.98));
+  border: 1px solid rgba(37, 246, 255, 0.22);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.35);
+}
+
+/* 严格 16:9：宽度不得超过「高度上限 × 16/9」，避免仅 max-height 截断时仍占满父级宽度而过扁 */
+.robot-camera-viewport {
+  /* 尽量占满「巡检机器人视角」卡片可用区域，仍保持严格 16:9 */
+  --patrol-camera-max-h: min(76vh, 920px);
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, calc(var(--patrol-camera-max-h) * 16 / 9));
+  max-width: 100%;
+  margin-inline: auto;
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  max-height: var(--patrol-camera-max-h);
+  min-height: 0;
+  background: #050a10;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.robot-camera-viewport canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  vertical-align: top;
+}
+
+.robot-camera-viewport img#robotCameraImg {
+  display: none;
+}
+
+.robot-camera-viewport img.robot-patrol-mjpeg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  object-position: center;
+  background: #050a10;
+  z-index: 2;
+  display: none;
+}
+
+.robot-camera-viewport img.robot-patrol-mjpeg.is-visible {
+  display: block;
+}
+
+.ros-status {
+  font-size: 12px;
+  color: #7a9aad;
+  font-variant-numeric: tabular-nums;
+}
+
+.patrol-robot-side {
+  width: min(360px, 34vw);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.battery-sphere-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: rgba(10, 18, 28, 0.88);
+  border-radius: 12px;
+  border: 1px solid rgba(37, 246, 255, 0.15);
+}
+
+.battery-sphere-inner {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.battery-sphere-wrap .side-label {
+  font-size: 12px;
+  color: #8aa4b4;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+#batterySphere {
+  --battery-level: 0.75;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.35) 0%,
+    transparent 45%
+  ),
+    conic-gradient(
+      #25f6ff 0deg calc(var(--battery-level) * 360deg),
+      rgba(40, 55, 70, 0.9) calc(var(--battery-level) * 360deg) 360deg
+    );
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.5), 0 0 28px rgba(37, 246, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+#batterySphere[data-level='low'] {
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 80, 80, 0.35);
+}
+
+#batterySphere::after {
+  content: '';
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #1a2838 0%, #0a1018 70%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#batteryPercentLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  font-size: 22px;
+  font-weight: 700;
+  color: #e8f4ff;
+  text-shadow: 0 0 12px rgba(37, 246, 255, 0.4);
+  pointer-events: none;
+}
+
+.speed-chart-card {
+  flex: 0 0 auto;
+  min-height: 0;
+  background: rgba(10, 18, 28, 0.88);
+  border-radius: 12px;
+  border: 1px solid rgba(37, 246, 255, 0.15);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.speed-chart-card .side-label {
+  font-size: 12px;
+  color: #8aa4b4;
+}
+
+.speed-chart-card canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 320 / 140;
+  max-height: 160px;
+  border-radius: 6px;
+  flex: 0 0 auto;
+}
+
+.robot-manual-card {
+  background: rgba(10, 18, 28, 0.88);
+  border-radius: 12px;
+  border: 1px solid rgba(158, 255, 0, 0.18);
+  padding: 12px;
+}
+
+.robot-manual-card .side-label {
+  font-size: 12px;
+  color: #9eff00;
+  margin-bottom: 10px;
+  letter-spacing: 0.08em;
+}
+
+#robotManualControl {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.robot-keyboard-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #8aa4b4;
+  text-align: center;
+}
+
+.robot-keyboard-hint kbd {
+  display: inline-block;
+  margin: 0 2px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: #e8f4ff;
+  background: rgba(37, 246, 255, 0.12);
+  border: 1px solid rgba(37, 246, 255, 0.35);
+  border-radius: 4px;
+}
+
+#robotManualControl .robot-cmd-btn.robot-manual-toggle {
+  width: 100%;
+  padding: 12px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(37, 246, 255, 0.35);
+  background: rgba(37, 246, 255, 0.1);
+  color: #c8eef8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+#robotManualControl .robot-cmd-btn.robot-manual-toggle:hover {
+  background: rgba(37, 246, 255, 0.2);
+  border-color: rgba(37, 246, 255, 0.55);
+}
+
+#robotManualControl .robot-cmd-btn.robot-manual-toggle.is-active {
+  background: rgba(158, 255, 0, 0.12);
+  border-color: rgba(158, 255, 0, 0.45);
+  color: #d4ffc4;
+  box-shadow: 0 0 16px rgba(158, 255, 0, 0.15);
+}
+
+#robotManualControl .robot-cmd-btn.robot-manual-toggle:active {
+  background: rgba(158, 255, 0, 0.18);
+}
+
+.robot-start-task-card {
+  margin-top: 6px;
+  background: linear-gradient(160deg, rgba(18, 42, 28, 0.95), rgba(8, 22, 14, 0.98));
+  border-radius: 12px;
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  padding: 14px 12px;
+  box-shadow: 0 0 28px rgba(0, 255, 136, 0.08);
+}
+
+.robot-start-task-card .side-label {
+  font-size: 11px;
+  color: #6effa8;
+  margin-bottom: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.patrol-start-task-btn {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 136, 0.55);
+  background: linear-gradient(180deg, rgba(0, 224, 120, 0.35), rgba(0, 160, 90, 0.45));
+  color: #e8fff2;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s, filter 0.15s;
+  box-shadow: 0 4px 20px rgba(0, 255, 136, 0.22);
+}
+
+.patrol-start-task-btn:hover:not(:disabled) {
+  border-color: rgba(120, 255, 190, 0.75);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 28px rgba(0, 255, 136, 0.32);
+}
+
+.patrol-start-task-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.patrol-start-task-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.patrol-start-task-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #9aa;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.patrol-start-task-hint.is-ok {
+  color: #8effc0;
+}
+
+.patrol-start-task-hint.is-error {
+  color: #ff9a8a;
+}
+
+.robot-task-status-card {
+  margin-top: 4px;
+  background: rgba(10, 18, 28, 0.88);
+  border-radius: 12px;
+  border: 1px solid rgba(37, 246, 255, 0.2);
+  padding: 12px;
+}
+
+.robot-task-status-card .side-label {
+  font-size: 12px;
+  color: #25f6ff;
+  margin-bottom: 10px;
+  letter-spacing: 0.06em;
+}
+
+.robot-task-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.robot-task-status-line {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.robot-task-status-k {
+  color: rgba(125, 147, 169, 0.95);
+}
+
+.robot-task-status-v {
+  color: #e8f4ff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.robot-task-status-v.is-wrap {
+  font-weight: 500;
+  font-size: 10px;
+  color: rgba(200, 220, 235, 0.92);
+}
+
+.robot-task-status-v.is-ok {
+  color: #9eff00;
+}
+
+.robot-task-status-v.is-off {
+  color: rgba(255, 140, 120, 0.95);
+}
+
+.robot-task-status-foot {
+  margin: 6px 0 0;
+  font-size: 10px;
+  line-height: 1.45;
+  color: rgba(125, 147, 169, 0.88);
+}
+
+.home-robot-status-card .home-robot-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-robot-status-line {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.home-robot-status-k {
+  color: rgba(125, 147, 169, 0.95);
+}
+
+.home-robot-status-v {
+  color: #e8f4ff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.home-robot-status-v.is-ok {
+  color: #9eff00;
+}
+
+.home-robot-status-v.is-off {
+  color: rgba(255, 140, 120, 0.95);
+}
+
+.home-robot-violation-preview {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(37, 246, 255, 0.12);
+}
+
+.home-robot-violation-preview-label {
+  font-size: 11px;
+  color: rgba(125, 147, 169, 0.9);
+  margin-bottom: 6px;
+}
+
+.home-robot-violation-frame {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(37, 246, 255, 0.2);
+}
+
+.home-robot-violation-meta {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(200, 220, 235, 0.88);
+  line-height: 1.4;
+}
+
+@media (max-width: 960px) {
+  .page[data-page='patrol'].is-active .patrol-robot-layout {
+    flex-direction: column;
+  }
+  .patrol-robot-side {
+    width: 100%;
+  }
+}
