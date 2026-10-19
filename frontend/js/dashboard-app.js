@@ -116,6 +116,7 @@ let activeCategoryFilter = '';
 let activeHourFilter = -1;
 let activeStatusFilter = '';
 let evParkingStats = { total: 0, byLabel: [], days: 30 };
+let roadDefectStats = { total: 0, byLabel: [], days: 30 };
 let hasCompletedInitialAlertLoad = false;
 let activePickerKey = '';
 
@@ -708,9 +709,21 @@ function initNavigation() {
         page.classList.toggle('is-active', page.dataset.page === target);
       });
       if (target === 'patrol') {
+        window.rosRoadDefect?.onRoadDefectPageHidden?.();
+        window.rosGauge?.onGaugePageHidden?.();
         window.rosPatrol?.onPatrolPageShown?.();
+      } else if (target === 'road-defect') {
+        window.rosPatrol?.onPatrolPageHidden?.();
+        window.rosGauge?.onGaugePageHidden?.();
+        window.rosRoadDefect?.onRoadDefectPageShown?.();
+      } else if (target === 'gauge') {
+        window.rosPatrol?.onPatrolPageHidden?.();
+        window.rosRoadDefect?.onRoadDefectPageHidden?.();
+        window.rosGauge?.onGaugePageShown?.();
       } else {
         window.rosPatrol?.onPatrolPageHidden?.();
+        window.rosRoadDefect?.onRoadDefectPageHidden?.();
+        window.rosGauge?.onGaugePageHidden?.();
       }
       const targetMapId = target === 'home' ? 'leaflet-map' : null;
       if (targetMapId && !maps[targetMapId]) initMap(targetMapId);
@@ -1786,6 +1799,93 @@ function renderEvParkingInsights() {
   }
 }
 
+
+async function refreshRoadDefectStats() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/detections/road-defect-stats?days=30`);
+    const data = await response.json();
+    if (data.success) {
+      roadDefectStats = {
+        total: Number(data.total) || 0,
+        byLabel: Array.isArray(data.byLabel) ? data.byLabel : [],
+        days: Number(data.days) || 30,
+      };
+    }
+  } catch (err) {
+    console.warn('[road-defect-stats]', err);
+  }
+  renderHomeLeftInsights();
+}
+
+function renderRoadDefectInsights() {
+  const totalEl = document.getElementById('homeRoadDefectTotal');
+  const subEl = document.getElementById('homeRoadDefectSub');
+  const barsEl = document.getElementById('homeRoadDefectBars');
+  const rankEl = document.getElementById('homeRoadDefectRank');
+  const rangeTag = document.getElementById('homeRoadDefectRangeTag');
+  if (rangeTag) rangeTag.textContent = `近${roadDefectStats.days}天`;
+  if (!(totalEl && barsEl)) return;
+
+  const rows = Array.isArray(roadDefectStats.byLabel) ? roadDefectStats.byLabel : [];
+  const total = Number(roadDefectStats.total) || 0;
+  const top = rows.slice(0, 6);
+  const maxCount = Math.max(1, ...top.map((item) => Number(item.count) || 0));
+  const palette = ['#25f6ff', '#21f6a2', '#f4b13b', '#ff7b2c', '#7d93a9', '#a78bfa'];
+
+  totalEl.textContent = String(total);
+  if (subEl) {
+    subEl.textContent = total
+      ? `覆盖 ${top.length || rows.length} 类缺陷标签`
+      : '近30天暂无道路缺陷识别';
+  }
+
+  if (!total) {
+    barsEl.innerHTML = `
+      <div class="road-defect-bar-row">
+        <span class="road-defect-bar-label">暂无数据</span>
+        <span class="road-defect-bar-track"><span class="road-defect-bar-fill" style="width:8%"></span></span>
+        <span class="road-defect-bar-count">0</span>
+      </div>`;
+    if (rankEl) {
+      rankEl.innerHTML = `<div class="rank-header"><span>缺陷标签</span><span>次数</span><span>占比</span><span>说明</span></div>
+        <div class="rank-row"><span>--</span><span>0</span><span>0%</span><span class="risk low">等待数据</span></div>`;
+    }
+    return;
+  }
+
+  barsEl.innerHTML = top
+    .map((item, index) => {
+      const label = String(item.label || '未标注').trim() || '未标注';
+      const count = Number(item.count) || 0;
+      const width = Math.max(8, (count / maxCount) * 100);
+      const color = palette[index % palette.length];
+      return `<div class="road-defect-bar-row" title="${label}">
+        <span class="road-defect-bar-label">${label}</span>
+        <span class="road-defect-bar-track"><span class="road-defect-bar-fill" style="width:${width.toFixed(1)}%;background:linear-gradient(90deg, ${color}55, ${color})"></span></span>
+        <span class="road-defect-bar-count">${count}</span>
+      </div>`;
+    })
+    .join('');
+
+  if (rankEl) {
+    rankEl.innerHTML =
+      `<div class="rank-header"><span>缺陷标签</span><span>次数</span><span>占比</span><span>说明</span></div>` +
+      top
+        .map((item) => {
+          const label = String(item.label || '未标注').trim() || '未标注';
+          const count = Number(item.count) || 0;
+          const ratio = total > 0 ? Math.round((count / total) * 100) : 0;
+          const risk =
+            ratio >= 40 ? 'high' : ratio >= 20 ? 'mid' : 'low';
+          const riskText =
+            risk === 'high' ? '高频缺陷' : risk === 'mid' ? '需关注' : '低占比';
+          return `<div class="rank-row"><span>${label}</span><span>${count}</span><span>${ratio}%</span><span class="risk ${risk}">${riskText}</span></div>`;
+        })
+        .join('');
+  }
+}
+
+
 function renderHomeLeftInsights() {
   const chipsEl = document.getElementById('homeAlertChips');
   const miniChartEl = document.getElementById('homeAlertMiniChart');
@@ -1795,8 +1895,6 @@ function renderHomeLeftInsights() {
   const hourlyBarsEl = document.getElementById('homeHourlyBars');
   const hourlyLegendEl = document.getElementById('homeHourlyLegend');
   const hotspotRankEl = document.getElementById('homeHotspotRank');
-  const statusFunnelEl = document.getElementById('homeStatusFunnel');
-
   const alerts = getSortedActiveAlerts();
   const hourAlerts = getAlertsForHourPanel();
   const visibleAlerts = getVisibleAlerts();
@@ -1824,6 +1922,7 @@ function renderHomeLeftInsights() {
   }
 
   renderEvParkingInsights();
+  renderRoadDefectInsights();
 
   if (filterPillsEl) {
     const categoryOptions = [...new Set(alerts.map((alert) => normalizeAlertCategory(alert)))].slice(0, 8);
@@ -2019,27 +2118,6 @@ function renderHomeLeftInsights() {
     });
   }
 
-  if (statusFunnelEl) {
-    const pending = alerts.filter((item) => String(item?.status || 'pending').toLowerCase() === 'pending').length;
-    const processing = alerts.filter((item) => String(item?.status || '').toLowerCase() === 'processing').length;
-    const resolved = alerts.filter((item) => String(item?.status || '').toLowerCase() === 'resolved').length;
-    const max = Math.max(pending, processing, resolved, 1);
-    const stages = [
-      { key: 'pending', label: '待处置', count: pending },
-      { key: 'processing', label: '处理中', count: processing },
-      { key: 'resolved', label: '已解决', count: resolved },
-    ];
-    statusFunnelEl.innerHTML = stages
-      .map((stage) => {
-        const width = 38 + (stage.count / max) * 62;
-        const activeClass = activeStatusFilter === stage.key ? ' is-active' : '';
-        return `<button type="button" class="funnel-row${activeClass}" data-status="${stage.key}"><span class="funnel-label">${stage.label}</span><span class="funnel-track"><span class="funnel-fill" style="width:${width.toFixed(1)}%"></span></span><span class="funnel-count">${stage.count}</span></button>`;
-      })
-      .join('');
-    statusFunnelEl.querySelectorAll('.funnel-row').forEach((btn) => {
-      btn.addEventListener('click', () => setActiveStatusFilter(btn.dataset.status || ''));
-    });
-  }
 }
 
 async function syncHomeOverviewByTickets() {
@@ -2259,6 +2337,7 @@ function bootDashboard() {
   syncHomeCommandCenter();
   renderHomeLeftInsights();
   void refreshEvParkingStats();
+  void refreshRoadDefectStats();
   void syncHomeOverviewByTickets();
   void refreshGovernanceMetrics();
   void refreshWeather();

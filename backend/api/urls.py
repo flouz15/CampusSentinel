@@ -51,6 +51,7 @@ urlpatterns = [
     path('detections/video/health', views.detection_video_health, name='detection_video_health'),
     path('detections', views.detection_records, name='detection_records'),
     path('detections/ev-parking-stats', views.detection_ev_parking_stats, name='detection_ev_parking_stats'),
+    path('detections/road-defect-stats', views.detection_road_defect_stats, name='detection_road_defect_stats'),
     path('detections/media', views.detection_media_proxy, name='detection_media_proxy'),
     path('detections/plate-summary', views.detection_plate_summary, name='detection_plate_summary'),
     path('assistant/health', views.assistant_health, name='assistant_health'),

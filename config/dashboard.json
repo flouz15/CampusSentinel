@@ -54,6 +54,11 @@
     "violationDetection": "/ebik_violation_ros/violation_detection",
     "violationDetectionMessageType": "std_msgs/String",
     "violationBoolStringMaxSkewMs": 200
+    ,
+
+    // --- 仪表巡检结果（机器人端识别后发布 JSON 字符串）---
+    "gaugeResult": "/gauge_task/result_json",
+    "gaugeResultMessageType": "std_msgs/String"
   },
 
   "robotControl": {

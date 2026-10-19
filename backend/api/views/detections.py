@@ -321,6 +321,55 @@ def detection_ev_parking_stats(request):
     return JsonResponse({"success": True, "days": days, "total": total, "byLabel": by_label})
 
 
+
+@require_auth_view(allow_dashboard=True)
+@require_http_methods(["GET"])
+def detection_road_defect_stats(request):
+    """近 N 天道路缺陷相关检测成功记录：次数与识别标签聚合，供首页联动展示。"""
+    from datetime import timedelta
+    from django.db.models import Count
+    from django.utils import timezone
+
+    auth = getattr(request, "auth", None)
+    user, profile = auth if auth is not None else (None, None)
+    days = _parse_int(request.GET.get("days")) or 30
+    days = max(1, min(days, 365))
+    since = timezone.now() - timedelta(days=days)
+
+    queryset = DetectionRecord.objects.filter(
+        created_at__gte=since,
+        status=DetectionRecord.STATUS_SUCCESS,
+    ).filter(
+        Q(label__icontains="道路")
+        | Q(label__icontains="路面")
+        | Q(label__icontains="缺陷")
+        | Q(label__icontains="坑槽")
+        | Q(label__icontains="裂缝")
+        | Q(label__icontains="破损")
+        | Q(label__icontains="塌陷")
+        | Q(label__icontains="road")
+        | Q(label__icontains="crack")
+        | Q(label__icontains="pothole")
+        | Q(original_name__icontains="道路")
+        | Q(original_name__icontains="缺陷")
+        | Q(original_name__icontains="路面")
+    )
+    if auth is not None and not (profile and profile.role == UserProfile.ROLE_ADMIN):
+        queryset = queryset.filter(created_by=user)
+
+    total = queryset.count()
+    agg = (
+        queryset.values("label")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:12]
+    )
+    by_label = [
+        {"label": (row["label"] or "").strip() or "未标注标签", "count": row["count"]}
+        for row in agg
+    ]
+    return JsonResponse({"success": True, "days": days, "total": total, "byLabel": by_label})
+
+
 @require_auth_view(allow_dashboard=True)
 @require_http_methods(["GET"])
 def detection_media_proxy(request):

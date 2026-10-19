@@ -43,7 +43,9 @@
         </div>
         <nav class="nav">
           <button class="nav-item is-active" data-page="home">首页</button>
-          <button class="nav-item" data-page="patrol">安保巡检</button>
+          <button class="nav-item" data-page="patrol">电动车违停巡检</button>
+          <button class="nav-item" data-page="road-defect">道路缺陷巡检</button>
+          <button class="nav-item" data-page="gauge">仪表巡检</button>
         </nav>
         <div class="status">
           <div class="status-item weather">
@@ -63,17 +65,6 @@
         <section class="page is-active" data-page="home">
           <main class="layout">
             <section class="panel left">
-              <div class="card figma-card">
-                <div class="figma-title">
-                  <span class="figma-title-icon" aria-hidden="true"></span>
-                  <span>区域监控</span>
-                  <span class="figma-title-meta">实时滚动</span>
-                </div>
-                <div id="areaMonitorScroll">
-                  <!-- 滚动列表由 JS 动态生成 -->
-                </div>
-              </div>
-
               <div class="card">
                 <div class="card-title card-title-split">
                   <span>电动车违停识别次数</span>
@@ -87,6 +78,26 @@
                 </div>
                 <div class="rank-table" id="homeCategoryRank">
                   <!-- 识别标签排行由 JS 动态生成 -->
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title card-title-split">
+                  <span>道路缺陷识别次数</span>
+                  <span class="card-title-tag" id="homeRoadDefectRangeTag">近30天</span>
+                </div>
+                <div class="road-defect-summary">
+                  <div class="road-defect-total-card">
+                    <div class="road-defect-total-label">合计识别</div>
+                    <div class="road-defect-total-value" id="homeRoadDefectTotal">0</div>
+                    <div class="road-defect-total-sub" id="homeRoadDefectSub">等待统计数据</div>
+                  </div>
+                  <div class="road-defect-bars" id="homeRoadDefectBars">
+                    <!-- 缺陷类型条形图由 JS 动态生成 -->
+                  </div>
+                </div>
+                <div class="rank-table" id="homeRoadDefectRank">
+                  <!-- 缺陷标签排行由 JS 动态生成 -->
                 </div>
               </div>
 
@@ -124,12 +135,6 @@
                 </div>
               </div>
 
-              <div class="card">
-                <div class="card-title">处置闭环漏斗</div>
-                <div class="status-funnel" id="homeStatusFunnel">
-                  <!-- 闭环漏斗由 JS 动态生成 -->
-                </div>
-              </div>
             </section>
 
             <section class="panel center">
@@ -431,6 +436,167 @@
           <footer class="bottom" id="footer-patrol"></footer>
         </section>
 
+        <section class="page" data-page="road-defect">
+          <div class="patrol-robot-layout">
+            <div class="patrol-robot-main">
+              <div class="robot-camera-card">
+                <div class="robot-camera-card-head">
+                  <div class="card-title">道路缺陷巡检视角</div>
+                  <button type="button" class="robot-detection-vis-toggle" id="roadDefectDetectionVisToggleBtn">
+                    显示缺陷检测结果
+                  </button>
+                </div>
+                <div class="robot-camera-viewport">
+                  <img id="roadDefectPatrolMjpegImg" class="robot-patrol-mjpeg" alt="原始子码流" hidden />
+                  <canvas id="roadDefectCameraCanvas" width="640" height="480"></canvas>
+                  <img id="roadDefectCameraImg" alt="" width="640" height="480" hidden />
+                </div>
+                <div id="roadDefectRosConnectionStatus" class="ros-status">未连接 rosbridge</div>
+              </div>
+            </div>
+            <aside class="patrol-robot-side">
+              <div class="battery-sphere-wrap">
+                <div class="side-label">电量</div>
+                <div class="battery-sphere-inner">
+                  <div id="roadDefectBatterySphere"></div>
+                  <span id="roadDefectBatteryPercentLabel">--</span>
+                </div>
+              </div>
+              <div class="speed-chart-card">
+                <div class="side-label">速度</div>
+                <canvas id="roadDefectSpeedChartCanvas" width="320" height="140"></canvas>
+              </div>
+              <div class="robot-manual-card">
+                <div class="side-label">手动控制（geometry_msgs/Twist）</div>
+                <div id="roadDefectManualControl">
+                  <p class="robot-keyboard-hint" id="roadDefectKeyboardHint" hidden>
+                    使用键盘 <kbd>W</kbd> <kbd>S</kbd> 前进 / 后退，<kbd>A</kbd> <kbd>D</kbd> 左转 / 右转
+                  </p>
+                  <button type="button" class="robot-cmd-btn robot-manual-toggle" id="roadDefectManualToggleBtn">
+                    启用手动控制
+                  </button>
+                </div>
+              </div>
+              <div class="robot-start-task-card">
+                <div class="side-label">远程启动（SSH）</div>
+                <button type="button" class="patrol-start-task-btn" id="roadDefectStartTaskBtn">
+                  开始任务
+                </button>
+                <p class="patrol-start-task-hint" id="roadDefectStartTaskHint" hidden></p>
+              </div>
+              <div class="robot-task-status-card">
+                <div class="side-label">实时任务状态</div>
+                <div id="roadDefectTaskStatusBody" class="robot-task-status-body">
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">机器人 ID</span>
+                    <span id="roadDefectTaskRobotId" class="robot-task-status-v">--</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">巡检任务类型</span>
+                    <span id="roadDefectTaskMissionType" class="robot-task-status-v">道路缺陷检测</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">巡检任务 ID</span>
+                    <span id="roadDefectTaskMissionId" class="robot-task-status-v">--</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">检测到缺陷次数</span>
+                    <span id="roadDefectCount" class="robot-task-status-v">0</span>
+                  </div>
+                  <div class="robot-task-status-line">
+                    <span class="robot-task-status-k">任务进度</span>
+                    <span id="roadDefectTaskProgress" class="robot-task-status-v">--</span>
+                  </div>
+                  <p class="robot-task-status-foot" id="roadDefectTaskStatusFoot"></p>
+                </div>
+              </div>
+            </aside>
+          </div>
+          <footer class="bottom" id="footer-road-defect"></footer>
+        </section>
+
+        <section class="page" data-page="gauge">
+          <div class="patrol-robot-layout">
+            <div class="patrol-robot-main">
+              <div class="robot-camera-card">
+                <div class="robot-camera-card-head">
+                  <div class="card-title">仪表巡检视角</div>
+                  <span id="gaugeConnectionStatus" class="ros-status">未连接 rosbridge</span>
+                </div>
+                <div class="robot-camera-viewport">
+                  <img id="gaugePatrolMjpegImg" class="robot-patrol-mjpeg" alt="仪表巡检画面" hidden />
+                </div>
+              </div>
+              <div class="gauge-result-card">
+                <div class="gauge-result-head">
+                  <div class="card-title">当前检测结果</div>
+                  <span id="gaugeResultStatus" class="gauge-status-pill">等待结果</span>
+                </div>
+                <div class="gauge-result-body">
+                  <img id="gaugeResultImage" class="gauge-result-image" alt="仪表抓拍" />
+                  <div class="gauge-result-metrics">
+                    <div><span>读数</span><strong id="gaugeReadingValue">--</strong></div>
+                    <div><span>仪表编号</span><strong id="gaugeIndexValue">--</strong></div>
+                    <div><span>图像序号</span><strong id="gaugeImageIndexValue">--</strong></div>
+                    <div><span>识别耗时</span><strong id="gaugeLatencyValue">--</strong></div>
+                    <div><span>任务状态</span><strong id="gaugeTaskStateValue">--</strong></div>
+                    <div><span>识别时间</span><strong id="gaugeResultTime">--</strong></div>
+                  </div>
+                </div>
+                <p id="gaugeResultMessage" class="gauge-result-message">启动巡检后，这里显示机器人返回的仪表读数。</p>
+              </div>
+            </div>
+
+            <aside class="patrol-robot-side gauge-side">
+              <div class="battery-sphere-wrap">
+                <div class="side-label">电量</div>
+                <div class="battery-sphere-inner">
+                  <div id="gaugeBatterySphere"></div>
+                  <span id="gaugeBatteryPercentLabel">--</span>
+                </div>
+              </div>
+              <div class="speed-chart-card">
+                <div class="side-label">速度</div>
+                <canvas id="gaugeSpeedChartCanvas" width="320" height="140"></canvas>
+              </div>
+              <div class="robot-manual-card">
+                <div class="side-label">手动控制（geometry_msgs/Twist）</div>
+                <div id="gaugeManualControl">
+                  <p class="robot-keyboard-hint" id="gaugeKeyboardHint" hidden>
+                    使用键盘 <kbd>W</kbd> <kbd>S</kbd> 前进 / 后退，<kbd>A</kbd> <kbd>D</kbd> 左转 / 右转
+                  </p>
+                  <button type="button" class="robot-cmd-btn robot-manual-toggle" id="gaugeManualToggleBtn">
+                    启用手动控制
+                  </button>
+                </div>
+              </div>
+              <div class="robot-start-task-card">
+                <div class="side-label">远程启动（SSH）</div>
+                <button type="button" class="patrol-start-task-btn" id="gaugeStartTaskBtn">
+                  开始任务
+                </button>
+                <p class="patrol-start-task-hint" id="gaugeStartTaskHint" hidden></p>
+              </div>
+              <div class="gauge-broadcast-card">
+                <div class="gauge-broadcast-head">
+                  <div class="side-label">任务播报</div>
+                  <span id="gaugeBroadcastState">待命</span>
+                </div>
+                <ol id="gaugeBroadcastList" class="gauge-broadcast-list">
+                  <li>等待连接机器人。</li>
+                </ol>
+              </div>
+              <div class="gauge-history-card">
+                <div class="side-label">检测记录</div>
+                <div id="gaugeHistoryList" class="gauge-history-list">
+                  <p>暂无仪表检测结果。</p>
+                </div>
+              </div>
+            </aside>
+          </div>
+          <footer class="bottom" id="footer-gauge"></footer>
+        </section>
+
       </div>
     </div>
 
@@ -663,6 +829,8 @@
               loadScript('js/dashboard-app.js', function () {
                 loadScript('https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js', function () {
                   loadScript('js/ros-patrol.js');
+                  loadScript('js/ros-road-defect.js');
+                  loadScript('js/ros-gauge.js');
                 });
               });
             }
