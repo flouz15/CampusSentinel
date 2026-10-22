@@ -1531,38 +1531,7 @@ function syncHomeCommandCenter(focusAlert = null) {
   setText('homeOverlayProcessing', String(processingCount));
   setText('homeOverlayClosedLoop', governanceClosureDisplay);
 
-  setText('homeOverviewProcessing', String(processingCount));
-  setText('homeOverviewPending', String(pendingCount));
-  setText('homeOverviewActiveAlerts', String(activeCount));
-
-  const alert = focusAlert || alerts[0] || null;
-  const statusEl = document.getElementById('homeFocusStatus');
-  if (!alert) {
-    if (statusEl) {
-      statusEl.textContent = '态势平稳';
-      statusEl.className = 'map-focus-status status-resolved';
-    }
-    setText('homeFocusTitle', '当前无活跃告警');
-    setText('homeFocusMeta', '告警接入后将在此摘要展示。');
-    setText('homeFocusDesc', '可通过地图检索定位校园 POI，或切换至安保巡检查看机器人视角。');
-    return;
-  }
-
-  const status = String(alert.status || 'pending').toLowerCase();
-  if (statusEl) {
-    statusEl.textContent = stageStatusText(status);
-    statusEl.className = `map-focus-status status-${status}`;
-  }
-  const timeText = formatStageTime(alert.updatedAt || alert.createdAt || alert.timestamp || '');
-  const locationText = alert.location || (Number.isFinite(Number(alert.longitude)) && Number.isFinite(Number(alert.latitude))
-    ? `${Number(alert.latitude).toFixed(5)}, ${Number(alert.longitude).toFixed(5)}`
-    : '位置待确认');
-  setText('homeFocusTitle', alert.title || '校园告警');
-  setText('homeFocusMeta', `${locationText} · ${alert.category || alert.severity || '待分级'}${timeText !== '--' ? ` · ${timeText}` : ''}`);
-  setText(
-    'homeFocusDesc',
-    alert.description || '建议优先联动现场值守力量、同步提取检测画面，并在工单页确认闭环责任人。',
-  );
+  renderHomeActiveTaskPanel();
 }
 
 function focusLatestAlert() {
@@ -1748,8 +1717,7 @@ function renderEvParkingInsights() {
   const pieTotalEl = document.getElementById('homeCategoryPieTotal');
   const pieLegendEl = document.getElementById('homeCategoryLegend');
   const rankEl = document.getElementById('homeCategoryRank');
-  const rangeTag = document.getElementById('homeEvParkingRangeTag');
-  if (rangeTag) rangeTag.textContent = `近${evParkingStats.days}天`;
+  syncHomeTaskCardHighlight();
   if (!(pieEl && pieTotalEl && pieLegendEl)) return;
 
   const rows = evParkingStats.byLabel || [];
@@ -1822,8 +1790,7 @@ function renderRoadDefectInsights() {
   const subEl = document.getElementById('homeRoadDefectSub');
   const barsEl = document.getElementById('homeRoadDefectBars');
   const rankEl = document.getElementById('homeRoadDefectRank');
-  const rangeTag = document.getElementById('homeRoadDefectRangeTag');
-  if (rangeTag) rangeTag.textContent = `近${roadDefectStats.days}天`;
+  syncHomeTaskCardHighlight();
   if (!(totalEl && barsEl)) return;
 
   const rows = Array.isArray(roadDefectStats.byLabel) ? roadDefectStats.byLabel : [];
@@ -1887,259 +1854,12 @@ function renderRoadDefectInsights() {
 
 
 function renderHomeLeftInsights() {
-  const chipsEl = document.getElementById('homeAlertChips');
-  const miniChartEl = document.getElementById('homeAlertMiniChart');
-  const filterTagEl = document.getElementById('homeCategoryFilterTag');
-  const filterPillsEl = document.getElementById('homeFilterPills');
-  const filterPickerEl = document.getElementById('homeFilterPicker');
-  const hourlyBarsEl = document.getElementById('homeHourlyBars');
-  const hourlyLegendEl = document.getElementById('homeHourlyLegend');
-  const hotspotRankEl = document.getElementById('homeHotspotRank');
-  const alerts = getSortedActiveAlerts();
-  const hourAlerts = getAlertsForHourPanel();
-  const visibleAlerts = getVisibleAlerts();
-
-  if (filterTagEl) {
-    if (!alerts.length) {
-      filterTagEl.textContent = '暂无数据';
-      filterTagEl.title = '暂无可筛选数据';
-      filterTagEl.classList.remove('is-filtered');
-    } else {
-      const tags = [];
-      if (activeCategoryFilter) tags.push(activeCategoryFilter);
-      if (activeHourFilter >= 0) tags.push(`${String(activeHourFilter).padStart(2, '0')}:00`);
-      if (activeStatusFilter) tags.push(stageStatusText(activeStatusFilter));
-      if (!tags.length) {
-        filterTagEl.textContent = '告警筛选：全部';
-        filterTagEl.title = '当前未筛选';
-        filterTagEl.classList.remove('is-filtered');
-      } else {
-        filterTagEl.textContent = `筛选：${tags.join(' / ')}`;
-        filterTagEl.title = '点击胶囊可清除单项筛选';
-        filterTagEl.classList.add('is-filtered');
-      }
-    }
-  }
-
   renderEvParkingInsights();
   renderRoadDefectInsights();
-
-  if (filterPillsEl) {
-    const categoryOptions = [...new Set(alerts.map((alert) => normalizeAlertCategory(alert)))].slice(0, 8);
-    const statusOptions = ['pending', 'processing', 'resolved'];
-
-    const pills = [
-      {
-        key: 'category',
-        active: !!activeCategoryFilter,
-        text: activeCategoryFilter ? `类型：${activeCategoryFilter}` : '类型：全部',
-        clear: () => setActiveCategoryFilter(''),
-        toggle: () => {
-          if (activeCategoryFilter) {
-            setActiveCategoryFilter('');
-            activePickerKey = '';
-            return;
-          }
-          activePickerKey = activePickerKey === 'category' ? '' : 'category';
-          renderHomeLeftInsights();
-        },
-        options: [{ label: '全部类型', value: '' }, ...categoryOptions.map((item) => ({ label: item, value: item }))],
-      },
-      {
-        key: 'hour',
-        active: activeHourFilter >= 0,
-        text: activeHourFilter >= 0 ? `时段：${String(activeHourFilter).padStart(2, '0')}:00` : '时段：全部',
-        clear: () => setActiveHourFilter(-1),
-        toggle: () => {
-          if (activeHourFilter >= 0) {
-            setActiveHourFilter(-1);
-            activePickerKey = '';
-            return;
-          }
-          activePickerKey = activePickerKey === 'hour' ? '' : 'hour';
-          renderHomeLeftInsights();
-        },
-        options: [{ label: '全部时段', value: '-1' }, { label: '上午', value: '9' }, { label: '中午', value: '12' }, { label: '下午', value: '15' }, { label: '晚间', value: '19' }],
-      },
-      {
-        key: 'status',
-        active: !!activeStatusFilter,
-        text: activeStatusFilter ? `状态：${stageStatusText(activeStatusFilter)}` : '状态：全部',
-        clear: () => setActiveStatusFilter(''),
-        toggle: () => {
-          if (activeStatusFilter) {
-            setActiveStatusFilter('');
-            activePickerKey = '';
-            return;
-          }
-          activePickerKey = activePickerKey === 'status' ? '' : 'status';
-          renderHomeLeftInsights();
-        },
-        options: [{ label: '全部状态', value: '' }, ...statusOptions.map((item) => ({ label: stageStatusText(item), value: item }))],
-      },
-    ];
-
-    filterPillsEl.innerHTML = pills
-      .map((pill, index) => `<span class="filter-pill${pill.active ? ' is-active' : ''}" data-pill-index="${index}" role="button" tabindex="0">${pill.text}${pill.active ? '<button type="button" class="filter-pill-clear" aria-label="清除筛选">×</button>' : ''}</span>`)
-      .join('');
-
-    filterPillsEl.querySelectorAll('.filter-pill').forEach((pillEl) => {
-      const onToggle = () => {
-        const idx = Number(pillEl.getAttribute('data-pill-index') || '-1');
-        if (idx >= 0 && pills[idx]) pills[idx].toggle();
-      };
-      pillEl.addEventListener('click', onToggle);
-      pillEl.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onToggle();
-        }
-      });
-    });
-
-    filterPillsEl.querySelectorAll('.filter-pill-clear').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const pill = btn.closest('[data-pill-index]');
-        const idx = Number(pill?.getAttribute('data-pill-index') || '-1');
-        if (idx >= 0 && pills[idx]) {
-          pills[idx].clear();
-          activePickerKey = '';
-        }
-      });
-    });
-
-    if (filterPickerEl) {
-      const activePill = pills.find((pill) => pill.key === activePickerKey);
-      if (!activePill || !activePill.options?.length) {
-        filterPickerEl.classList.remove('is-open');
-        filterPickerEl.innerHTML = '';
-      } else {
-        const currentValue = activePill.key === 'category'
-          ? activeCategoryFilter
-          : activePill.key === 'hour'
-            ? String(activeHourFilter)
-            : activeStatusFilter;
-        filterPickerEl.classList.add('is-open');
-        filterPickerEl.innerHTML = activePill.options
-          .map((option) => `<button type="button" class="filter-picker-btn${String(option.value) === String(currentValue) ? ' is-active' : ''}" data-picker-key="${activePill.key}" data-picker-value="${option.value}">${option.label}</button>`)
-          .join('');
-        filterPickerEl.querySelectorAll('.filter-picker-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const key = btn.dataset.pickerKey || '';
-            const value = btn.dataset.pickerValue || '';
-            if (key === 'category') setActiveCategoryFilter(value);
-            if (key === 'hour') setActiveHourFilter(Number(value));
-            if (key === 'status') setActiveStatusFilter(value);
-            activePickerKey = '';
-            renderHomeLeftInsights();
-          });
-        });
-      }
-    }
-  }
-
-  if (chipsEl) {
-    if (!visibleAlerts.length) {
-      chipsEl.innerHTML = '<span class="chip">暂无匹配告警</span>';
-    } else {
-      const pending = visibleAlerts.filter((item) => String(item?.status || '').toLowerCase() === 'pending').length;
-      const processing = visibleAlerts.filter((item) => String(item?.status || '').toLowerCase() === 'processing').length;
-      const highRisk = visibleAlerts.filter((item) => ['critical', 'high'].includes(String(item?.severity || '').toLowerCase())).length;
-      const latest = visibleAlerts[0];
-      const latestCategory = normalizeAlertCategory(latest);
-      chipsEl.innerHTML = [
-        `待处置 ${pending}`,
-        `处理中 ${processing}`,
-        `高风险 ${highRisk}`,
-        `最新类型 ${latestCategory}`,
-      ].map((text) => `<span class="chip">${text}</span>`).join('');
-    }
-  }
-
-  if (miniChartEl) {
-    if (!visibleAlerts.length) {
-      miniChartEl.innerHTML = '<span class="mini-bar" style="--h:14px"></span>'.repeat(8);
-    } else {
-      const latestEight = visibleAlerts.slice(0, 8).reverse();
-      miniChartEl.innerHTML = latestEight
-        .map((alert) => {
-          const severity = String(alert?.severity || '').toLowerCase();
-          const h = severity === 'critical' ? 64 : severity === 'high' ? 56 : severity === 'medium' ? 42 : 28;
-          return `<span class="mini-bar" style="--h:${h}px"></span>`;
-        })
-        .join('');
-    }
-  }
-
-  if (hourlyBarsEl && hourlyLegendEl) {
-    const counts = Array.from({ length: 24 }, () => 0);
-    hourAlerts.forEach((alert) => {
-      const hour = getAlertTimeHour(alert);
-      if (hour >= 0) counts[hour] += 1;
-    });
-    const max = Math.max(...counts, 1);
-    hourlyBarsEl.innerHTML = counts
-      .map((count, hour) => {
-        const h = 14 + (count / max) * 54;
-        const activeClass = activeHourFilter === hour ? ' is-active' : '';
-        return `<button type="button" class="hour-bar${activeClass}" data-hour="${hour}" style="--h:${h.toFixed(1)}px" title="${String(hour).padStart(2, '0')}:00 · ${count} 条"><span>${count}</span></button>`;
-      })
-      .join('');
-    hourlyLegendEl.innerHTML = ['00', '06', '12', '18', '23'].map((h) => `<span>${h}:00</span>`).join('');
-    hourlyBarsEl.querySelectorAll('.hour-bar').forEach((btn) => {
-      btn.addEventListener('click', () => setActiveHourFilter(Number(btn.dataset.hour || '-1')));
-    });
-  }
-
-  if (hotspotRankEl) {
-    const grouped = new Map();
-    visibleAlerts.forEach((alert) => {
-      const key = String(alert.location || '').trim()
-        || (Number.isFinite(Number(alert.longitude)) && Number.isFinite(Number(alert.latitude))
-          ? `${Number(alert.longitude).toFixed(4)}, ${Number(alert.latitude).toFixed(4)}`
-          : '未知点位');
-      const current = grouped.get(key) || { total: 0, latest: alert };
-      current.total += 1;
-      current.latest = alert;
-      grouped.set(key, current);
-    });
-    const rows = [...grouped.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
-    hotspotRankEl.innerHTML = !rows.length
-      ? '<div class="hotspot-row"><span>暂无点位数据</span><span>0</span></div>'
-      : rows.map(([name, summary], index) => `<button type="button" class="hotspot-row" data-alert-id="${String(summary.latest?.id || '')}"><span class="hotspot-name">${index + 1}. ${name}</span><span class="hotspot-count">${summary.total}</span></button>`).join('');
-    hotspotRankEl.querySelectorAll('.hotspot-row[data-alert-id]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const target = visibleAlerts.find((item) => String(item?.id || '') === String(btn.dataset.alertId || ''));
-        if (!target) return;
-        focusAlertOnMap(target, 'leaflet-map');
-        openStageDetail(target);
-      });
-    });
-  }
-
 }
 
 async function syncHomeOverviewByTickets() {
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
-
-  try {
-    const [resolved, processing, pending] = await Promise.all([
-      fetchTicketTotal({ status: 'resolved' }),
-      fetchTicketTotal({ status: 'processing' }),
-      fetchTicketTotal({ status: 'pending' }),
-    ]);
-    setText('homeOverviewResolved', String(resolved));
-    setText('homeOverviewProcessing', String(processing));
-    setText('homeOverviewPending', String(pending));
-  } catch {
-    setText('homeOverviewResolved', '--');
-    setText('homeOverviewProcessing', '--');
-    setText('homeOverviewPending', '--');
-  }
+  // 今日数据概览卡片已从首页移除，保留空函数避免旧调用报错。
 }
 
 function initAllMaps() {
@@ -2191,6 +1911,480 @@ function syncHomeRobotPatrolIdFromConfig() {
   if (homeEl) homeEl.textContent = rid;
 }
 
+const HOME_TASK_SCENES = {
+  'ev-parking': {
+    key: 'ev-parking',
+    title: '电动车违停巡检',
+    page: 'patrol',
+    tagId: 'homeEvParkingRangeTag',
+  },
+  'road-defect': {
+    key: 'road-defect',
+    title: '道路缺陷巡检',
+    page: 'road-defect',
+    tagId: 'homeRoadDefectRangeTag',
+  },
+  gauge: {
+    key: 'gauge',
+    title: '仪表巡检',
+    page: 'gauge',
+    tagId: 'homeGaugeFeedTag',
+  },
+};
+
+const homeActiveTask = {
+  scene: '',
+  status: 'idle',
+  runId: '',
+  startedAt: '',
+  finishedAt: '',
+  progressLabel: '待命',
+  findingCount: 0,
+  latestFinding: '',
+  timelineNote: '当前无活跃任务',
+  findings: [],
+  reportPromptVisible: false,
+  reportPromptHandled: false,
+  robotConnected: false,
+};
+
+function normalizeTaskStatus(raw) {
+  const value = String(raw || '').trim().toUpperCase();
+  if (value === 'RUNNING' || value === '执行中' || value === '进行中' || value === '启动中') return 'running';
+  if (value === 'SUCCESS' || value === '成功完成' || value === '完成' || value === '已完成') return 'success';
+  if (value === 'FAILURE' || value === '流程失败' || value === '失败' || value === '启动失败' || value === '数据异常' || value === '识别异常') {
+    return 'failure';
+  }
+  return 'idle';
+}
+
+function formatTaskClock(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
+  return date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function navigateToPage(target) {
+  if (!target) return;
+  const button = document.querySelector(`.nav-item[data-page="${target}"]`);
+  if (button) button.click();
+}
+
+function syncHomeTaskCardHighlight() {
+  document.querySelectorAll('.home-task-progress-card[data-task-scene]').forEach((card) => {
+    const scene = card.getAttribute('data-task-scene');
+    const active = Boolean(homeActiveTask.scene) && scene === homeActiveTask.scene && homeActiveTask.status !== 'idle';
+    card.classList.toggle('is-active-task', active);
+  });
+
+  Object.values(HOME_TASK_SCENES).forEach((scene) => {
+    const tag = document.getElementById(scene.tagId);
+    if (!tag) return;
+    if (homeActiveTask.scene === scene.key && homeActiveTask.status === 'running') {
+      tag.textContent = '执行中';
+    } else if (homeActiveTask.scene === scene.key && homeActiveTask.status === 'success') {
+      tag.textContent = '已完成';
+    } else if (homeActiveTask.scene === scene.key && homeActiveTask.status === 'failure') {
+      tag.textContent = '异常';
+    } else if (!(homeActiveTask.scene === scene.key && homeActiveTask.status !== 'idle')) {
+      if (scene.key === 'gauge') tag.textContent = '待命';
+      else tag.textContent = '待命';
+    }
+  });
+}
+
+function getHomeTaskCurrentView() {
+  const scene = HOME_TASK_SCENES[homeActiveTask.scene];
+  if (!scene || homeActiveTask.status === 'idle') {
+    if (!homeActiveTask.robotConnected) {
+      return {
+        statusText: '空闲',
+        statusClass: 'map-focus-status status-resolved',
+        title: '当前无活跃任务',
+        meta: '机器人未连接',
+        label: '空闲',
+        text: '当前无活跃任务',
+        currentClass: 'is-idle',
+      };
+    }
+    return {
+      statusText: '空闲',
+      statusClass: 'map-focus-status status-resolved',
+      title: '当前无活跃任务',
+      meta: '等待任务启动',
+      label: '空闲',
+      text: '当前无活跃任务',
+      currentClass: 'is-idle',
+    };
+  }
+
+  if (homeActiveTask.status === 'running') {
+    return {
+      statusText: '执行中',
+      statusClass: 'map-focus-status status-processing',
+      title: scene.title,
+      meta: [
+        homeActiveTask.runId ? `任务 #${homeActiveTask.runId}` : '',
+        homeActiveTask.progressLabel || '现场执行中',
+        `发现 ${homeActiveTask.findingCount}`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      label: homeActiveTask.progressLabel || '现场执行中',
+      text: homeActiveTask.latestFinding || homeActiveTask.timelineNote || '任务执行中',
+      currentClass: 'is-running',
+    };
+  }
+
+  if (homeActiveTask.status === 'success') {
+    return {
+      statusText: '已完成',
+      statusClass: 'map-focus-status status-resolved',
+      title: scene.title,
+      meta: [
+        homeActiveTask.runId ? `任务 #${homeActiveTask.runId}` : '',
+        homeActiveTask.finishedAt ? `完成于 ${homeActiveTask.finishedAt}` : '任务已完成',
+        `发现 ${homeActiveTask.findingCount}`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      label: '任务已完成',
+      text: homeActiveTask.latestFinding || `本轮共回传 ${homeActiveTask.findingCount} 条结果`,
+      currentClass: 'is-done',
+    };
+  }
+
+  return {
+    statusText: '异常',
+    statusClass: 'map-focus-status',
+    title: scene.title,
+    meta: homeActiveTask.progressLabel || '任务异常',
+    label: homeActiveTask.progressLabel || '任务异常',
+    text: homeActiveTask.latestFinding || homeActiveTask.timelineNote || '任务结束异常',
+    currentClass: 'is-error',
+  };
+}
+
+function renderHomeActiveTaskPanel() {
+  const statusEl = document.getElementById('homeFocusStatus');
+  const reportBtn = document.getElementById('homeFocusReportBtn');
+  const currentRoot = document.getElementById('homeTaskCurrent');
+  const currentLabel = document.getElementById('homeTaskCurrentLabel');
+  const currentText = document.getElementById('homeTaskCurrentText');
+  const view = getHomeTaskCurrentView();
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  if (statusEl) {
+    statusEl.textContent = view.statusText;
+    statusEl.className = view.statusClass;
+  }
+  setText('homeFocusTitle', view.title);
+  setText('homeFocusMeta', view.meta);
+  if (currentLabel) currentLabel.textContent = view.label;
+  if (currentText) currentText.textContent = view.text;
+  if (currentRoot) {
+    currentRoot.className = `home-task-current ${view.currentClass}`;
+  }
+  if (reportBtn) reportBtn.hidden = homeActiveTask.status !== 'success';
+  syncHomeTaskCardHighlight();
+}
+
+function showHomeTaskReportPrompt() {
+  const prompt = document.getElementById('homeTaskReportPrompt');
+  const title = document.getElementById('homeTaskReportPromptTitle');
+  const text = document.getElementById('homeTaskReportPromptText');
+  const scene = HOME_TASK_SCENES[homeActiveTask.scene];
+  if (!prompt || !scene) return;
+  if (title) title.textContent = `${scene.title}已完成`;
+  if (text) text.textContent = `本轮共回传 ${homeActiveTask.findingCount} 条结果，是否立即生成任务报告？`;
+  prompt.hidden = false;
+  homeActiveTask.reportPromptVisible = true;
+}
+
+function hideHomeTaskReportPrompt() {
+  const prompt = document.getElementById('homeTaskReportPrompt');
+  if (prompt) prompt.hidden = true;
+  homeActiveTask.reportPromptVisible = false;
+}
+
+function buildHomeTaskReport() {
+  const scene = HOME_TASK_SCENES[homeActiveTask.scene] || HOME_TASK_SCENES['ev-parking'];
+  const durationText =
+    homeActiveTask.startedAt && homeActiveTask.finishedAt
+      ? `${homeActiveTask.startedAt} 至 ${homeActiveTask.finishedAt}`
+      : homeActiveTask.startedAt || '--';
+  return {
+    title: `${scene.title}任务报告`,
+    subtitle: homeActiveTask.runId ? `任务 #${homeActiveTask.runId}` : '本轮巡检自动汇总',
+    summary: `${scene.title}已结束。本轮状态为「${
+      homeActiveTask.status === 'success' ? '已完成' : homeActiveTask.status === 'failure' ? '异常结束' : homeActiveTask.progressLabel
+    }」，共回传 ${homeActiveTask.findingCount} 条关键发现。${
+      homeActiveTask.latestFinding ? `最近一条：${homeActiveTask.latestFinding}。` : ''
+    }`,
+    metrics: [
+      { label: '任务场景', value: scene.title },
+      { label: '发现数量', value: String(homeActiveTask.findingCount) },
+      { label: '执行时段', value: durationText },
+    ],
+    timeline: [
+      { title: '任务启动', text: homeActiveTask.startedAt ? `启动于 ${homeActiveTask.startedAt}` : '已启动' },
+      { title: '现场执行', text: homeActiveTask.progressLabel || '已执行' },
+      {
+        title: '结果回传',
+        text: homeActiveTask.findingCount
+          ? `累计回传 ${homeActiveTask.findingCount} 条，最近：${homeActiveTask.latestFinding || '--'}`
+          : '本轮无新增发现',
+      },
+      {
+        title: '任务完成',
+        text: homeActiveTask.finishedAt ? `完成于 ${homeActiveTask.finishedAt}` : '已结束',
+      },
+    ],
+    findings: homeActiveTask.findings.length
+      ? homeActiveTask.findings.slice(0, 8)
+      : [{ title: '暂无关键发现', text: '本轮任务未回传检测结果。' }],
+  };
+}
+
+async function openHomeTaskReportModal() {
+  const modal = document.getElementById('homeTaskReportModal');
+  const report = buildHomeTaskReport();
+  void persistHomeTaskReportToRepo().then((saved) => {
+    if (saved?.report?.url) {
+      const subtitle = document.getElementById('homeTaskReportSubtitle');
+      if (subtitle) subtitle.textContent = `${report.subtitle} · 已写入 ${saved.report.url}`;
+    }
+  });
+  const title = document.getElementById('homeTaskReportTitle');
+  const subtitle = document.getElementById('homeTaskReportSubtitle');
+  const summary = document.getElementById('homeTaskReportSummary');
+  const metrics = document.getElementById('homeTaskReportMetrics');
+  const timeline = document.getElementById('homeTaskReportTimeline');
+  const findings = document.getElementById('homeTaskReportFindings');
+  if (!modal) return;
+
+  if (title) title.textContent = report.title;
+  if (subtitle) subtitle.textContent = report.subtitle;
+  if (summary) summary.textContent = report.summary;
+  if (metrics) {
+    metrics.innerHTML = report.metrics
+      .map((item) => `<div class="home-task-report-metric"><span>${item.label}</span><strong>${item.value}</strong></div>`)
+      .join('');
+  }
+  if (timeline) {
+    timeline.innerHTML = report.timeline
+      .map((item) => `<div class="home-task-report-timeline-item"><strong>${item.title}</strong><span>${item.text}</span></div>`)
+      .join('');
+  }
+  if (findings) {
+    findings.innerHTML = report.findings
+      .map((item) => `<div class="home-task-report-finding"><strong>${item.title}</strong><span>${item.text}</span></div>`)
+      .join('');
+  }
+  hideHomeTaskReportPrompt();
+  modal.hidden = false;
+}
+
+function closeHomeTaskReportModal() {
+  const modal = document.getElementById('homeTaskReportModal');
+  if (modal) modal.hidden = true;
+}
+
+function resolvePatrolReportUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('/')) {
+    return `${window.location.origin}${value}`;
+  }
+  return new URL(value, window.location.href).href;
+}
+
+async function fetchPatrolReports(limit = 50) {
+  const response = await fetch(`${API_BASE_URL}/patrol/reports?limit=${limit}`);
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.message || data?.error || `HTTP ${response.status}`);
+  }
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+async function fetchPatrolTaskStatus() {
+  const response = await fetch(`${API_BASE_URL}/patrol/task/status`);
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.message || data?.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function requestPatrolTaskStart(scene, { dryRun = true } = {}) {
+  const response = await fetch(`${API_BASE_URL}/patrol/task/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scene, dryRun }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.message || data?.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function requestPatrolReportGenerate(source = 'dashboard') {
+  const response = await fetch(`${API_BASE_URL}/patrol/reports/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.message || data?.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+function applyAssistantTaskState(task = {}) {
+  if (!task || typeof task !== 'object') return;
+  const scene = String(task.scene || '').trim();
+  if (!scene || !HOME_TASK_SCENES[scene]) return;
+  updateHomeActiveTaskFromScene(scene, {
+    controllerStatusRaw: task.status,
+    taskProgressLabel: task.progressLabel,
+    taskRunSerial: task.runId,
+    violationCount: Number(task.findingCount) || 0,
+  });
+  if (Array.isArray(task.findings) && task.findings.length && !homeActiveTask.findings.length) {
+    homeActiveTask.findings = task.findings.slice(0, 20).map((item) => ({
+      title: item.title || '关键发现',
+      text: item.text || '',
+      at: item.at || formatTaskClock(),
+    }));
+    homeActiveTask.latestFinding = task.latestFinding || homeActiveTask.latestFinding;
+    renderHomeActiveTaskPanel();
+  }
+}
+
+async function persistHomeTaskReportToRepo() {
+  try {
+    if (homeActiveTask.status !== 'success' && homeActiveTask.status !== 'failure') {
+      return null;
+    }
+    await fetch(`${API_BASE_URL}/patrol/task/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scene: homeActiveTask.scene,
+        status: homeActiveTask.status,
+        progressLabel: homeActiveTask.progressLabel,
+        findingCount: homeActiveTask.findingCount,
+        latestFinding: homeActiveTask.latestFinding,
+        runId: homeActiveTask.runId,
+        message: homeActiveTask.timelineNote,
+      }),
+    });
+    return await requestPatrolReportGenerate('dashboard');
+  } catch (error) {
+    console.warn('[patrol-report-persist]', error);
+    return null;
+  }
+}
+
+function getPatrolReportsIndexUrl() {
+  try {
+    return new URL('../report/index.html', window.location.href).href;
+  } catch (_error) {
+    return `${window.location.origin}/report/index.html`;
+  }
+}
+
+function openPatrolReportsIndex() {
+  const url = getPatrolReportsIndexUrl();
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function bindPatrolReportsEntry() {
+  document.getElementById('homePatrolReportsFab')?.addEventListener('click', openPatrolReportsIndex);
+}
+
+function pushHomeTaskFinding(title, text) {
+  const finding = {
+    title: String(title || '关键发现'),
+    text: String(text || ''),
+    at: formatTaskClock(),
+  };
+  homeActiveTask.findings.unshift(finding);
+  if (homeActiveTask.findings.length > 20) homeActiveTask.findings = homeActiveTask.findings.slice(0, 20);
+  homeActiveTask.findingCount += 1;
+  homeActiveTask.latestFinding = `${finding.title} · ${finding.text}`;
+  renderHomeActiveTaskPanel();
+}
+
+function updateHomeActiveTaskFromScene(sceneKey, detail = {}) {
+  const scene = HOME_TASK_SCENES[sceneKey];
+  if (!scene) return;
+
+  const nextStatus = normalizeTaskStatus(detail.controllerStatusRaw || detail.status || detail.state);
+  const previousScene = homeActiveTask.scene;
+  const previousStatus = homeActiveTask.status;
+
+  if (typeof detail.rosConnected === 'boolean') {
+    homeActiveTask.robotConnected = detail.rosConnected;
+  }
+
+  if (nextStatus === 'idle') {
+    if (homeActiveTask.scene === sceneKey && previousStatus === 'running') {
+      // 短暂空状态不立刻清空，避免闪烁
+      homeActiveTask.progressLabel = detail.taskProgressLabel || homeActiveTask.progressLabel;
+      renderHomeActiveTaskPanel();
+    }
+    return;
+  }
+
+  if (homeActiveTask.scene && homeActiveTask.scene !== sceneKey && homeActiveTask.status === 'running') {
+    // 同时只允许一个任务高亮，后来的执行场景覆盖当前活跃任务
+  }
+
+  homeActiveTask.scene = sceneKey;
+  homeActiveTask.status = nextStatus;
+  homeActiveTask.runId =
+    detail.taskRunSerial != null && String(detail.taskRunSerial).trim() !== ''
+      ? String(detail.taskRunSerial)
+      : homeActiveTask.runId || '';
+  homeActiveTask.progressLabel = detail.taskProgressLabel || detail.controllerStatusZh || homeActiveTask.progressLabel;
+
+  if (nextStatus === 'running' && (previousScene !== sceneKey || previousStatus !== 'running')) {
+    homeActiveTask.startedAt = formatTaskClock();
+    homeActiveTask.finishedAt = '';
+    homeActiveTask.findingCount = Number(detail.violationCount) || 0;
+    homeActiveTask.latestFinding = '';
+    homeActiveTask.findings = [];
+    homeActiveTask.reportPromptHandled = false;
+    homeActiveTask.timelineNote = `${scene.title}执行中`;
+    hideHomeTaskReportPrompt();
+    closeHomeTaskReportModal();
+  }
+
+  if (typeof detail.violationCount === 'number' && detail.violationCount >= homeActiveTask.findingCount) {
+    homeActiveTask.findingCount = detail.violationCount;
+  }
+
+  if (nextStatus === 'success' || nextStatus === 'failure') {
+    homeActiveTask.finishedAt = homeActiveTask.finishedAt || formatTaskClock();
+    homeActiveTask.timelineNote =
+      nextStatus === 'success' ? `${scene.title}已完成` : `${scene.title}异常结束`;
+    if (nextStatus === 'success' && !homeActiveTask.reportPromptHandled) {
+      homeActiveTask.reportPromptHandled = true;
+      showHomeTaskReportPrompt();
+    }
+  }
+
+  renderHomeActiveTaskPanel();
+}
+
 function updateHomeRobotDashboardPanel(detail) {
   const conn = document.getElementById('homeRobotRosConn');
   const bt = document.getElementById('homeRobotBtStatus');
@@ -2202,6 +2396,8 @@ function updateHomeRobotDashboardPanel(detail) {
   }
   if (bt) bt.textContent = detail.controllerStatusZh || '--';
   if (vc) vc.textContent = String(detail.violationCount ?? 0);
+  homeActiveTask.robotConnected = Boolean(detail.rosConnected);
+  if (homeActiveTask.status === 'idle') renderHomeActiveTaskPanel();
 }
 
 function addHomeViolationMapMarker(gcjLng, gcjLat, detail = {}) {
@@ -2235,6 +2431,17 @@ function bindRobotDashboardListeners() {
     const d = event?.detail;
     if (!d) return;
     updateHomeRobotDashboardPanel(d);
+    updateHomeActiveTaskFromScene('ev-parking', d);
+  });
+  window.addEventListener('road-defect-dashboard-state', (event) => {
+    const d = event?.detail;
+    if (!d) return;
+    updateHomeActiveTaskFromScene('road-defect', d);
+  });
+  window.addEventListener('gauge-dashboard-state', (event) => {
+    const d = event?.detail;
+    if (!d) return;
+    updateHomeActiveTaskFromScene('gauge', d);
   });
   window.addEventListener('robot-violation-event', (event) => {
     const d = event?.detail || {};
@@ -2255,14 +2462,14 @@ function bindRobotDashboardListeners() {
     const img = document.getElementById('homeRobotViolationFrame');
     const metaEl = document.getElementById('homeRobotViolationMeta');
     const b64 = d.frame_jpeg_base64;
+    const ev0 = Array.isArray(d.plate_ocr_events) ? d.plate_ocr_events[0] : null;
+    const pt = ev0 && (ev0.plate_text ?? ev0.plateText) != null ? String(ev0.plate_text ?? ev0.plateText).trim() : '';
     if (wrap && img && b64) {
       wrap.hidden = false;
       const raw = String(b64).replace(/^data:image\/\w+;base64,/, '');
       img.src = `data:image/jpeg;base64,${raw}`;
     }
     if (metaEl) {
-      const ev0 = Array.isArray(d.plate_ocr_events) ? d.plate_ocr_events[0] : null;
-      const pt = ev0 && (ev0.plate_text ?? ev0.plateText) != null ? String(ev0.plate_text ?? ev0.plateText).trim() : '';
       metaEl.textContent = [
         d.seq != null ? `seq ${d.seq}` : '',
         d.latency_ms != null ? `延迟 ${d.latency_ms} ms` : '',
@@ -2271,7 +2478,305 @@ function bindRobotDashboardListeners() {
         .filter(Boolean)
         .join(' · ');
     }
+    if (homeActiveTask.scene !== 'ev-parking' || homeActiveTask.status === 'idle') {
+      updateHomeActiveTaskFromScene('ev-parking', {
+        controllerStatusRaw: 'RUNNING',
+        taskProgressLabel: '发现违停',
+        taskRunSerial: homeActiveTask.runId || '',
+      });
+    }
+    pushHomeTaskFinding(
+      d.seq != null ? `违停 #${d.seq}` : '违停发现',
+      pt ? `车牌 ${pt}` : '已回传抓拍画面',
+    );
   });
+  window.addEventListener('road-defect-detection-event', (event) => {
+    const d = event?.detail || {};
+    if (homeActiveTask.scene !== 'road-defect' || homeActiveTask.status === 'idle') {
+      updateHomeActiveTaskFromScene('road-defect', {
+        controllerStatusRaw: 'RUNNING',
+        taskProgressLabel: '发现道路缺陷',
+        taskRunSerial: homeActiveTask.runId || '',
+      });
+    }
+    pushHomeTaskFinding(
+      d.seq != null ? `缺陷 #${d.seq}` : '道路缺陷发现',
+      '已回传缺陷检测结果',
+    );
+  });
+}
+
+function escapeHomeText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function setHomeGaugeFeedStatus(statusText, tagText) {
+  const statusEl = document.getElementById('homeGaugeLatestStatus');
+  if (statusEl) statusEl.textContent = statusText || '等待结果';
+  syncHomeTaskCardHighlight();
+}
+
+function renderHomeGaugeFeed(records = []) {
+  const listEl = document.getElementById('homeGaugeFeedList');
+  const readingEl = document.getElementById('homeGaugeLatestReading');
+  const indexEl = document.getElementById('homeGaugeLatestIndex');
+  if (!listEl) return;
+
+  const rows = Array.isArray(records) ? records.slice(0, 8) : [];
+  if (!rows.length) {
+    if (readingEl) readingEl.textContent = '--';
+    if (indexEl) indexEl.textContent = '--';
+    setHomeGaugeFeedStatus('等待结果');
+    listEl.innerHTML = '<div class="home-gauge-feed-empty">暂无仪表巡检结果，等待机器人回传。</div>';
+    return;
+  }
+
+  const latest = rows[0] || {};
+  const reading = latest.meter_reading ?? latest.meter_reading_value ?? '--';
+  const index = latest.gauge_index ?? '--';
+  const hasError = Boolean(latest.meter_reader_error);
+  if (readingEl) readingEl.textContent = String(reading);
+  if (indexEl) indexEl.textContent = String(index);
+  setHomeGaugeFeedStatus(hasError ? '识别异常' : '识别正常');
+
+  listEl.innerHTML = rows
+    .map((record) => {
+      const itemReading = escapeHomeText(record.meter_reading ?? record.meter_reading_value ?? '--');
+      const itemIndex = escapeHomeText(record.gauge_index ?? '--');
+      const itemTime = escapeHomeText(record.time || '--');
+      const itemState = record.meter_reader_error
+        ? `异常：${escapeHomeText(record.meter_reader_error)}`
+        : escapeHomeText(record.task_state || '已识别');
+      return `<div class="home-gauge-feed-item"><div class="home-gauge-feed-item-top"><span>仪表 #${itemIndex}</span><strong>${itemReading}</strong></div><div class="home-gauge-feed-item-meta">${itemTime} · ${itemState}</div></div>`;
+    })
+    .join('');
+}
+
+function bindHomeGaugeFeedListener() {
+  window.addEventListener('gauge-result-update', (event) => {
+    const detail = event?.detail || {};
+    const records = Array.isArray(detail.records) ? detail.records : detail.record ? [detail.record] : [];
+    renderHomeGaugeFeed(records);
+    const latest = records[0];
+    if (!latest) return;
+    if (homeActiveTask.scene !== 'gauge' || homeActiveTask.status === 'idle') {
+      updateHomeActiveTaskFromScene('gauge', {
+        controllerStatusRaw: 'RUNNING',
+        taskProgressLabel: '仪表结果回传中',
+        taskRunSerial: homeActiveTask.runId || '',
+      });
+    }
+    pushHomeTaskFinding(
+      latest.gauge_index != null ? `仪表 #${latest.gauge_index}` : '仪表识别',
+      latest.meter_reader_error
+        ? `异常：${latest.meter_reader_error}`
+        : `读数 ${latest.meter_reading ?? latest.meter_reading_value ?? '--'}`,
+    );
+  });
+}
+
+const homeAgentState = {
+  busy: false,
+  messages: [],
+  sessionId: '',
+};
+
+function setHomeAgentStatus(text) {
+  const tag = document.getElementById('homeAgentStatusTag');
+  if (tag) tag.textContent = text || '接口待接入';
+}
+
+function setHomeAgentHint(text) {
+  const hint = document.getElementById('homeAgentHint');
+  if (hint) hint.textContent = text || '预留接口：window.homeAgentApi';
+}
+
+function setHomeAgentBusy(busy) {
+  homeAgentState.busy = Boolean(busy);
+  const sendBtn = document.getElementById('homeAgentSendBtn');
+  const clearBtn = document.getElementById('homeAgentClearBtn');
+  const input = document.getElementById('homeAgentInput');
+  if (sendBtn) sendBtn.disabled = homeAgentState.busy;
+  if (clearBtn) clearBtn.disabled = homeAgentState.busy;
+  if (input) input.disabled = homeAgentState.busy;
+}
+
+function renderHomeAgentMessages() {
+  const root = document.getElementById('homeAgentMessages');
+  if (!root) return;
+  if (!homeAgentState.messages.length) {
+    root.innerHTML = '<div class="home-agent-msg is-system" data-role="system">智能巡检助手已就绪。可对话启动电动车违停 / 道路缺陷 / 仪表巡检，查询任务状态，并在完成后生成巡检报告。</div>';
+    return;
+  }
+  root.innerHTML = homeAgentState.messages
+    .map((msg) => {
+      const role = String(msg.role || 'assistant');
+      const cls = role === 'user' ? 'is-user' : role === 'system' ? 'is-system' : 'is-assistant';
+      return `<div class="home-agent-msg ${cls}" data-role="${escapeHomeText(role)}">${escapeHomeText(msg.content || '')}</div>`;
+    })
+    .join('');
+  root.scrollTop = root.scrollHeight;
+}
+
+function appendHomeAgentMessage(role, content) {
+  const text = String(content || '').trim();
+  if (!text) return null;
+  const message = {
+    id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    role: role || 'assistant',
+    content: text,
+    createdAt: new Date().toISOString(),
+  };
+  homeAgentState.messages.push(message);
+  if (homeAgentState.messages.length > 80) {
+    homeAgentState.messages = homeAgentState.messages.slice(-80);
+  }
+  renderHomeAgentMessages();
+  return message;
+}
+
+function clearHomeAgentMessages() {
+  homeAgentState.messages = [];
+  renderHomeAgentMessages();
+}
+
+async function defaultHomeAgentSend(payload) {
+  const content = String(payload?.content || '').trim();
+  if (!content) {
+    return { role: 'system', content: '请输入有效内容后再发送。' };
+  }
+  const response = await fetch(`${API_BASE_URL}/assistant/ask`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      question: content,
+      sessionId: homeAgentState.sessionId || undefined,
+      topK: 5,
+      mode: 'default',
+    }),
+  });
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (_error) {
+    data = null;
+  }
+
+  if (!response.ok || !data?.success) {
+    const detail =
+      data?.deepseekError ||
+      data?.dashscopeError ||
+      data?.llmError ||
+      data?.ragError ||
+      data?.error ||
+      `HTTP ${response.status}`;
+    throw new Error(detail);
+  }
+
+  if (data.sessionId) {
+    homeAgentState.sessionId = data.sessionId;
+  }
+
+  const answer = String(data.answer || '').trim();
+  if (!answer) {
+    throw new Error('助手未返回有效内容');
+  }
+
+  if (data.task) {
+    applyAssistantTaskState(data.task);
+  }
+
+  return {
+    role: 'assistant',
+    content: answer,
+    provider: data.provider || '',
+    model: data.model || '',
+    taskAction: data.taskAction || '',
+    task: data.task || null,
+    report: data.report || null,
+  };
+}
+
+async function submitHomeAgentMessage(rawContent) {
+  const content = String(rawContent || '').trim();
+  if (!content || homeAgentState.busy) return null;
+
+  appendHomeAgentMessage('user', content);
+  setHomeAgentBusy(true);
+  setHomeAgentStatus('处理中');
+  setHomeAgentHint('正在调用 DeepSeek V4 Pro…');
+
+  try {
+    const api = window.homeAgentApi || {};
+    const customSender = typeof api.send === 'function' && api.send !== defaultHomeAgentSend ? api.send : null;
+    const sender = customSender || defaultHomeAgentSend;
+    const result = await sender({
+      content,
+      messages: homeAgentState.messages.slice(),
+    });
+    const replyRole = result?.role || 'assistant';
+    const replyContent = result?.content || result?.message || '智能巡检助手未返回内容。';
+    appendHomeAgentMessage(replyRole, replyContent);
+    setHomeAgentStatus('已接入 DeepSeek V4 Pro');
+    setHomeAgentHint('已接入 DeepSeek V4 Pro');
+    return result;
+  } catch (error) {
+    appendHomeAgentMessage('system', `调用失败：${error?.message || error || '未知错误'}`);
+    setHomeAgentStatus('调用失败');
+    setHomeAgentHint('大模型调用失败，请稍后重试');
+    return null;
+  } finally {
+    setHomeAgentBusy(false);
+  }
+}
+
+function bindHomeAgentPanel() {
+  const form = document.getElementById('homeAgentComposer');
+  const input = document.getElementById('homeAgentInput');
+  const clearBtn = document.getElementById('homeAgentClearBtn');
+  if (!form || !input) return;
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const content = input.value;
+    input.value = '';
+    void submitHomeAgentMessage(content);
+  });
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    clearHomeAgentMessages();
+    homeAgentState.sessionId = '';
+    setHomeAgentStatus('已接入 DeepSeek V4 Pro');
+    setHomeAgentHint('已接入 DeepSeek V4 Pro');
+  });
+
+  window.homeAgentApi = window.homeAgentApi || {};
+  window.homeAgentApi.appendMessage = appendHomeAgentMessage;
+  window.homeAgentApi.clearMessages = clearHomeAgentMessages;
+  window.homeAgentApi.setStatus = setHomeAgentStatus;
+  window.homeAgentApi.setHint = setHomeAgentHint;
+  window.homeAgentApi.getMessages = () => homeAgentState.messages.slice();
+  if (typeof window.homeAgentApi.send !== 'function') {
+    window.homeAgentApi.send = defaultHomeAgentSend;
+  }
+
+  renderHomeAgentMessages();
+  setHomeAgentStatus('已接入 DeepSeek V4 Pro');
+  setHomeAgentHint('已接入 DeepSeek V4 Pro');
 }
 
 function bootDashboard() {
@@ -2302,6 +2807,14 @@ function bootDashboard() {
   syncHomeGpsPanelInitial();
   syncHomeRobotPatrolIdFromConfig();
   bindRobotDashboardListeners();
+  bindHomeGaugeFeedListener();
+  bindHomeAgentPanel();
+  bindPatrolReportsEntry();
+  void fetchPatrolTaskStatus()
+    .then((data) => {
+      if (data?.task) applyAssistantTaskState(data.task);
+    })
+    .catch((error) => console.warn('[patrol-task-status]', error));
   tryEnsureRosGpsConnection();
   bindHomeMapCommandPanel();
   initAreaMonitor();
@@ -2317,28 +2830,31 @@ function bootDashboard() {
   }
   const copyPlateBtn = document.getElementById('stageCopyPlateBtn');
   if (copyPlateBtn) copyPlateBtn.textContent = '复制车牌号';
-  document.getElementById('homeFocusActionBtn')?.addEventListener('click', focusLatestAlert);
-  document.addEventListener('click', (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    if (target.closest('#homeFilterPills') || target.closest('#homeFilterPicker')) return;
-    if (!activePickerKey) return;
-    activePickerKey = '';
-    renderHomeLeftInsights();
+  document.getElementById('homeFocusActionBtn')?.addEventListener('click', () => {
+    const scene = HOME_TASK_SCENES[homeActiveTask.scene];
+    if (scene?.page) {
+      navigateToPage(scene.page);
+      return;
+    }
+    focusLatestAlert();
   });
-  document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    if (!activePickerKey) return;
-    activePickerKey = '';
-    renderHomeLeftInsights();
+  document.getElementById('homeFocusReportBtn')?.addEventListener('click', () => {
+    void openHomeTaskReportModal();
   });
+  document.getElementById('homeTaskReportGenerateBtn')?.addEventListener('click', () => {
+    void openHomeTaskReportModal();
+  });
+  document.getElementById('homeTaskReportLaterBtn')?.addEventListener('click', () => {
+    hideHomeTaskReportPrompt();
+  });
+  document.getElementById('homeTaskReportCloseBtn')?.addEventListener('click', closeHomeTaskReportModal);
+  document.querySelector('[data-close-task-report="true"]')?.addEventListener('click', closeHomeTaskReportModal);
   document.getElementById('metricsHelpCloseBtn')?.addEventListener('click', closeMetricsHelpModal);
   document.querySelector('[data-close-metrics-help="true"]')?.addEventListener('click', closeMetricsHelpModal);
   syncHomeCommandCenter();
   renderHomeLeftInsights();
   void refreshEvParkingStats();
   void refreshRoadDefectStats();
-  void syncHomeOverviewByTickets();
   void refreshGovernanceMetrics();
   void refreshWeather();
   startAlertPolling(5000);

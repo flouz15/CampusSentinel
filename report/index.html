@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>历史巡检报告</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #07111f;
+      color: #e8f3ff;
+      padding: 32px 18px;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; }
+    p { color: #9bb4cc; }
+    .hint { margin-top: 8px; color: #9bb4cc; font-size: 13px; }
+    .list { display: grid; gap: 12px; margin-top: 20px; }
+    a.item {
+      display: block;
+      padding: 14px 16px;
+      border: 1px solid rgba(120,180,230,.28);
+      border-radius: 12px;
+      color: inherit;
+      text-decoration: none;
+      background: rgba(12,28,48,.92);
+    }
+    a.item:hover { border-color: rgba(90,190,255,.7); }
+    .muted { color: #9bb4cc; font-size: 12px; margin-top: 4px; }
+    .empty {
+      padding: 18px 16px;
+      border: 1px dashed rgba(120,180,230,.28);
+      border-radius: 12px;
+      color: #9bb4cc;
+      background: rgba(12,28,48,.55);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>历史巡检报告</h1>
+    <p>点击下方任一报告即可直接打开。</p>
+    <div class="hint" id="reportHint">正在加载报告列表…</div>
+    <div class="list" id="reportList"></div>
+  </div>
+  <script>
+    (function () {
+      const hint = document.getElementById('reportHint');
+      const list = document.getElementById('reportList');
+
+      function escapeText(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function guessApiBase() {
+        try {
+          const origin = window.location.origin;
+          if (/:8080$/i.test(origin)) {
+            return origin.replace(/:8080$/i, ':5000') + '/api';
+          }
+          return origin + '/api';
+        } catch (_error) {
+          return 'http://127.0.0.1:5000/api';
+        }
+      }
+
+      function renderLocalFallback() {
+        const files = [
+          { title: '电动车违停巡检示例报告', href: './sample-ev-parking.html' },
+          { title: '道路缺陷巡检示例报告', href: './sample-road-defect.html' },
+          { title: '仪表巡检示例报告', href: './sample-gauge.html' },
+        ];
+        hint.textContent = '后端列表暂不可用，已展示本地示例报告。';
+        list.innerHTML = files
+          .map((item) => `<a class="item" href="${escapeText(item.href)}" target="_blank" rel="noopener noreferrer">
+            <strong>${escapeText(item.title)}</strong>
+            <div class="muted">${escapeText(item.href)}</div>
+          </a>`)
+          .join('');
+      }
+
+      async function loadReports() {
+        const apiBase = guessApiBase();
+        try {
+          const response = await fetch(apiBase + '/patrol/reports?limit=100');
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data || !data.success) {
+            throw new Error((data && (data.message || data.error)) || ('HTTP ' + response.status));
+          }
+          const items = Array.isArray(data.items) ? data.items : [];
+          const reportItems = items.filter((item) => String(item.filename || '').toLowerCase() !== 'index.html');
+          if (!reportItems.length) {
+            hint.textContent = '暂无历史报告。';
+            list.innerHTML = '<div class="empty">仓库 report/ 目录当前没有可打开的巡检报告。</div>';
+            return;
+          }
+          hint.textContent = '共 ' + reportItems.length + ' 份报告';
+          list.innerHTML = reportItems
+            .map((item) => {
+              const href = './' + String(item.filename || '').replace(/^.*[\\/]/, '');
+              const meta = [item.sceneTitle || item.scene || '', item.generatedAt || item.updatedAt || '', item.runId ? ('任务 ' + item.runId) : '']
+                .filter(Boolean)
+                .join(' · ');
+              return `<a class="item" href="${escapeText(href)}" target="_blank" rel="noopener noreferrer">
+                <strong>${escapeText(item.title || item.filename || '巡检报告')}</strong>
+                <div class="muted">${escapeText(meta || href)}</div>
+              </a>`;
+            })
+            .join('');
+        } catch (error) {
+          console.warn('[report-index]', error);
+          renderLocalFallback();
+        }
+      }
+
+      loadReports();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "scene": "road-defect",
+  "sceneTitle": "道路缺陷巡检",
+  "title": "道路缺陷巡检任务报告",
+  "summary": "道路缺陷巡检已结束。本轮状态为「已完成」，共回传 0 条关键发现。",
+  "status": "success",
+  "runId": "20261022-113727-5f68db",
+  "generatedAt": "2026-10-22 11:37:27",
+  "source": "assistant",
+  "metrics": [
+    {
+      "label": "任务场景",
+      "value": "道路缺陷巡检"
+    },
+    {
+      "label": "发现数量",
+      "value": "0"
+    },
+    {
+      "label": "执行时段",
+      "value": "2026-10-22 11:37:27 至 2026-10-22 11:37:27"
+    },
+    {
+      "label": "当前状态",
+      "value": "已完成"
+    }
+  ],
+  "timeline": [
+    {
+      "title": "任务启动",
+      "text": "启动于 2026-10-22 11:37:27"
+    },
+    {
+      "title": "现场执行",
+      "text": "已完成"
+    },
+    {
+      "title": "结果回传",
+      "text": "本轮无新增发现"
+    },
+    {
+      "title": "任务完成",
+      "text": "完成于 2026-10-22 11:37:27"
+    }
+  ],
+  "findings": [
+    {
+      "title": "暂无关键发现",
+      "text": "本轮任务未回传检测结果。"
+    }
+  ],
+  "filename": "road-defect-20261022-113727.html",
+  "jsonFilename": "road-defect-20261022-113727.json",
+  "url": "/report/road-defect-20261022-113727.html"
+}

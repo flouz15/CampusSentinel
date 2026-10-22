@@ -1,0 +1,63 @@
+{
+  "scene": "ev-parking",
+  "sceneTitle": "电动车违停巡检",
+  "status": "success",
+  "generatedAt": "2026-10-22 11:37:27",
+  "source": "sample",
+  "runId": "SAMPLE-EV-PARKING",
+  "title": "电动车违停巡检示例报告",
+  "summary": "示例报告：本轮电动车违停巡检覆盖教学楼与宿舍区主干道，共回传 3 处疑似违停点，建议安保复核后闭环。",
+  "metrics": [
+    {
+      "label": "巡检场景",
+      "value": "电动车违停巡检"
+    },
+    {
+      "label": "发现数量",
+      "value": "3"
+    },
+    {
+      "label": "执行时段",
+      "value": "08:10 - 08:42"
+    },
+    {
+      "label": "闭环建议",
+      "value": "现场复核"
+    }
+  ],
+  "timeline": [
+    {
+      "title": "任务启动",
+      "text": "08:10 启动电动车违停巡检"
+    },
+    {
+      "title": "现场执行",
+      "text": "08:18 进入宿舍区主干道"
+    },
+    {
+      "title": "结果回传",
+      "text": "08:35 累计回传 3 条违停抓拍"
+    },
+    {
+      "title": "任务完成",
+      "text": "08:42 任务正常结束"
+    }
+  ],
+  "findings": [
+    {
+      "title": "违停 #1",
+      "text": "图书馆东侧非机动车道，疑似电动车占道"
+    },
+    {
+      "title": "违停 #2",
+      "text": "2 号宿舍楼下消防通道口，车牌 OCR 待复核"
+    },
+    {
+      "title": "违停 #3",
+      "text": "食堂西侧人行道，建议安保现场确认"
+    }
+  ],
+  "filename": "sample-ev-parking.html",
+  "jsonFilename": "sample-ev-parking.json",
+  "url": "/report/sample-ev-parking.html"
+}

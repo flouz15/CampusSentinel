@@ -33,23 +33,65 @@ from ..models import (
     UserProfile,
 )
 
+# =========================
+# 后端运行参数（统一从 backend/.env 读取）
+# =========================
+
+# 高德 Web 服务 Key：仅供后端代理地理编码、天气、POI、路径规划等接口使用
 AMAP_WEB_SERVICE_KEY = os.environ.get("AMAP_WEB_SERVICE_KEY", "").strip()
+# 高德 Web 服务 API 根地址
 AMAP_API_BASE = "https://restapi.amap.com/v3"
+
+# 检测服务地址：图片/视频检测、媒体代理等会转发到该地址
 DETECTION_BASE_URL = os.environ.get("DETECTION_BASE_URL", "http://127.0.0.1:8001")
+# 外部告警源地址：如需反向同步告警状态可配置
 ALERT_API_BASE_URL = os.environ.get("ALERT_API_BASE_URL", "http://localhost:8080")
+# 大屏请求后端时使用的密钥；与 config/dashboard.json 的 dashboardApiKey 保持一致
 DASHBOARD_API_KEY = os.environ.get("DASHBOARD_API_KEY", "")
+# 安保通知服务地址；留空则跳过外部通知推送
 SECURITY_NOTIFY_BASE_URL = os.environ.get("SECURITY_NOTIFY_BASE_URL", "")
+# 邮件发件人显示地址；未配置时回退到 EMAIL_HOST_USER
 EMAIL_SENDER = os.environ.get("EMAIL_SENDER", "")
+
+# ---------- 智能巡检助手 · DeepSeek ----------
+# 助手优先调用 DeepSeek 兼容模式接口；失败时再回退到 LightRAG / 本地 Ollama / 规则检索
+# 兼容模式接口地址（OpenAI Chat Completions 风格）
+DEEPSEEK_COMPAT_BASE_URL = os.environ.get(
+    "DEEPSEEK_COMPAT_BASE_URL",
+    "https://api.deepseek.com/v1",
+).rstrip("/")
+# DeepSeek API Key（sk-...）
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+# 首页智能巡检助手默认模型（deepseek-flash，默认关闭思考/推理）
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash").strip() or "deepseek-flash"
+try:
+    # DeepSeek 请求超时时间（秒）
+    DEEPSEEK_TIMEOUT_SECONDS = int(os.environ.get("DEEPSEEK_TIMEOUT_SECONDS", "60"))
+except (TypeError, ValueError):
+    DEEPSEEK_TIMEOUT_SECONDS = 60
+
+# ---------- 智能巡检助手 · 本地 Ollama 回退 ----------
+# 本地 Ollama 服务地址；DeepSeek 不可用时尝试调用
 ASSISTANT_OLLAMA_BASE = os.environ.get("ASSISTANT_OLLAMA_BASE", "http://127.0.0.1:11434")
+# 本地 Ollama 模型名
 ASSISTANT_OLLAMA_MODEL = os.environ.get("ASSISTANT_OLLAMA_MODEL", "qwen2.5:7b-instruct")
+
+# ---------- 智能巡检助手 · LightRAG 回退 ----------
+# LightRAG 服务地址；可用于知识库问答
 LIGHTRAG_BASE_URL = os.environ.get("LIGHTRAG_BASE_URL", "http://127.0.0.1:9621")
+# LightRAG API Key；服务未开启鉴权时可留空
 LIGHTRAG_API_KEY = os.environ.get("LIGHTRAG_API_KEY", "")
 try:
+    # LightRAG 请求超时时间（秒）
     LIGHTRAG_TIMEOUT_SECONDS = int(os.environ.get("LIGHTRAG_TIMEOUT_SECONDS", "120"))
 except (TypeError, ValueError):
     LIGHTRAG_TIMEOUT_SECONDS = 120
+
+# 助手会话记忆轮数（一问一答计 1 轮）
 ASSISTANT_MEMORY_LIMIT = 8
+# 实时事件前端轮询建议间隔（秒）
 REALTIME_POLL_INTERVAL_SECONDS = 5
+# 机器人状态上报密钥；留空时仅接受本机或已通过大屏密钥校验的请求
 ROBOT_INGEST_KEY = os.environ.get("ROBOT_INGEST_KEY", "")
 
 logger = logging.getLogger(__name__)
@@ -1429,102 +1471,3 @@ def _detection_record_to_dict(record, request=None):
         "createdAt": record.created_at.isoformat(),
         "updatedAt": record.updated_at.isoformat(),
     }
-"""Shared helpers for the campus dashboard API."""
-
-import json
-import logging
-import mimetypes
-import os
-import random
-import re
-import uuid
-from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
-from functools import wraps
-from urllib.parse import urlparse
-
-import requests
-from django.conf import settings as django_settings
-from django.contrib.auth.models import User
-from django.core.files.base import ContentFile
-from django.db import transaction
-from django.db.models import Q
-from django.http import JsonResponse
-from django.utils import timezone
-from django.utils.dateparse import parse_datetime
-
-from ..models import (
-    ApiToken,
-    AssistantSessionMessage,
-    DetectionRecord,
-    DispatchOrder,
-    EmailVerification,
-    EventTimelineLog,
-    ModelFeedback,
-    ModelMetricSnapshot,
-    RealtimeEvent,
-    Report,
-    RewardRecord,
-    RobotDevice,
-    RobotFrame,
-    RobotRecognition,
-    ScenarioRun,
-    ScenarioTemplate,
-    SecurityTicket,
-    UserProfile,
-)
-
-AMAP_WEB_SERVICE_KEY = os.environ.get("AMAP_WEB_SERVICE_KEY", "").strip()
-AMAP_API_BASE = "https://restapi.amap.com/v3"
-DETECTION_BASE_URL = os.environ.get("DETECTION_BASE_URL", "http://127.0.0.1:8001")
-ALERT_API_BASE_URL = os.environ.get("ALERT_API_BASE_URL", "http://localhost:8080")
-DASHBOARD_API_KEY = os.environ.get("DASHBOARD_API_KEY", "")
-SECURITY_NOTIFY_BASE_URL = os.environ.get("SECURITY_NOTIFY_BASE_URL", "")
-EMAIL_SENDER = os.environ.get("EMAIL_SENDER", "")
-ASSISTANT_OLLAMA_BASE = os.environ.get("ASSISTANT_OLLAMA_BASE", "http://127.0.0.1:11434")
-ASSISTANT_OLLAMA_MODEL = os.environ.get("ASSISTANT_OLLAMA_MODEL", "qwen2.5:7b-instruct")
-LIGHTRAG_BASE_URL = os.environ.get("LIGHTRAG_BASE_URL", "http://127.0.0.1:9621")
-LIGHTRAG_API_KEY = os.environ.get("LIGHTRAG_API_KEY", "")
-try:
-    LIGHTRAG_TIMEOUT_SECONDS = int(os.environ.get("LIGHTRAG_TIMEOUT_SECONDS", "120"))
-except (TypeError, ValueError):
-    LIGHTRAG_TIMEOUT_SECONDS = 120
-ASSISTANT_MEMORY_LIMIT = 8
-REALTIME_POLL_INTERVAL_SECONDS = 5
-ROBOT_INGEST_KEY = os.environ.get("ROBOT_INGEST_KEY", "")
-
-logger = logging.getLogger(__name__)
-VIDEO_DETECT_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="video-detect")
-
-REWARD_CATALOG = [
-    {
-        "id": "coffee_coupon",
-        "title": "校园咖啡券",
-        "description": "可在线下合作咖啡点兑换一杯标准饮品。",
-        "pointsCost": 80,
-        "category": "校园权益",
-    },
-    {
-        "id": "print_credit",
-        "title": "打印额度",
-        "description": "兑换 20 页黑白打印额度，用于学习资料打印。",
-        "pointsCost": 50,
-        "category": "学习服务",
-    },
-    {
-        "id": "library_pass",
-        "title": "图书借阅券",
-        "description": "可用于热门图书优先借阅或延长借阅时长。",
-        "pointsCost": 100,
-        "category": "学习服务",
-    },
-    {
-        "id": "canteen_discount",
-        "title": "食堂优惠券",
-        "description": "可在指定食堂窗口抵扣 10 元餐费。",
-        "pointsCost": 120,
-        "category": "校园权益",
-    },
-]
-
-

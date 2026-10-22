@@ -65,10 +65,10 @@
         <section class="page is-active" data-page="home">
           <main class="layout">
             <section class="panel left">
-              <div class="card">
+              <div class="card home-task-progress-card" data-task-scene="ev-parking">
                 <div class="card-title card-title-split">
-                  <span>电动车违停识别次数</span>
-                  <span class="card-title-tag" id="homeEvParkingRangeTag">近30天</span>
+                  <span>电动车违停巡检动态</span>
+                  <span class="card-title-tag" id="homeEvParkingRangeTag">待命</span>
                 </div>
                 <div class="category-pie-wrap">
                   <div class="category-pie" id="homeCategoryPie"><span id="homeCategoryPieTotal">0</span></div>
@@ -81,14 +81,14 @@
                 </div>
               </div>
 
-              <div class="card">
+              <div class="card home-task-progress-card" data-task-scene="road-defect">
                 <div class="card-title card-title-split">
-                  <span>道路缺陷识别次数</span>
-                  <span class="card-title-tag" id="homeRoadDefectRangeTag">近30天</span>
+                  <span>道路缺陷巡检动态</span>
+                  <span class="card-title-tag" id="homeRoadDefectRangeTag">待命</span>
                 </div>
                 <div class="road-defect-summary">
                   <div class="road-defect-total-card">
-                    <div class="road-defect-total-label">合计识别</div>
+                    <div class="road-defect-total-label">本轮发现</div>
                     <div class="road-defect-total-value" id="homeRoadDefectTotal">0</div>
                     <div class="road-defect-total-sub" id="homeRoadDefectSub">等待统计数据</div>
                   </div>
@@ -101,37 +101,27 @@
                 </div>
               </div>
 
-              <div class="card">
+              <div class="card home-gauge-feed-card home-task-progress-card" data-task-scene="gauge">
                 <div class="card-title card-title-split">
-                  <span>处置节奏与关注点</span>
-                  <span class="card-title-tag" id="homeCategoryFilterTag">全部类型</span>
+                  <span>仪表巡检动态</span>
+                  <span class="card-title-tag" id="homeGaugeFeedTag">待命</span>
                 </div>
-                <div class="filter-pill-row" id="homeFilterPills">
-                  <!-- 筛选胶囊由 JS 动态生成 -->
+                <div class="home-gauge-feed-summary">
+                  <div class="home-gauge-feed-stat">
+                    <span class="home-gauge-feed-k">最近读数</span>
+                    <strong id="homeGaugeLatestReading">--</strong>
+                  </div>
+                  <div class="home-gauge-feed-stat">
+                    <span class="home-gauge-feed-k">仪表编号</span>
+                    <strong id="homeGaugeLatestIndex">--</strong>
+                  </div>
+                  <div class="home-gauge-feed-stat">
+                    <span class="home-gauge-feed-k">状态</span>
+                    <strong id="homeGaugeLatestStatus">等待结果</strong>
+                  </div>
                 </div>
-                <div class="filter-picker" id="homeFilterPicker"></div>
-                <div class="chips" id="homeAlertChips">
-                  <!-- 关注标签由 JS 动态生成 -->
-                </div>
-                <div class="mini-chart" id="homeAlertMiniChart">
-                  <!-- 近8条事件节奏由 JS 动态生成 -->
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="card-title">24小时告警时段分布</div>
-                <div class="hourly-bars" id="homeHourlyBars">
-                  <!-- 时段分布由 JS 动态生成 -->
-                </div>
-                <div class="hourly-legend" id="homeHourlyLegend">
-                  <!-- 时段标签由 JS 动态生成 -->
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="card-title">高发点位 TOP5</div>
-                <div class="hotspot-rank" id="homeHotspotRank">
-                  <!-- 高发点位由 JS 动态生成 -->
+                <div class="home-gauge-feed-list" id="homeGaugeFeedList">
+                  <div class="home-gauge-feed-empty">暂无仪表巡检结果，等待机器人回传。</div>
                 </div>
               </div>
 
@@ -186,12 +176,18 @@
                     </div>
                   </div>
                   <div class="map-focus-card">
-                    <div class="map-focus-label">当前焦点事件</div>
+                    <div class="map-focus-label">当前活跃任务</div>
                     <div class="map-focus-status" id="homeFocusStatus">--</div>
                     <div class="map-focus-title" id="homeFocusTitle">--</div>
                     <div class="map-focus-meta" id="homeFocusMeta">--</div>
-                    <div class="map-focus-desc" id="homeFocusDesc">--</div>
-                    <button class="map-focus-btn" id="homeFocusActionBtn" type="button">查看事件详情</button>
+                    <div class="home-task-current" id="homeTaskCurrent">
+                      <strong id="homeTaskCurrentLabel">空闲</strong>
+                      <p id="homeTaskCurrentText">当前无活跃任务</p>
+                    </div>
+                    <div class="map-focus-actions">
+                      <button class="map-focus-btn" id="homeFocusActionBtn" type="button">进入任务页</button>
+                      <button class="map-focus-btn map-focus-btn-secondary" id="homeFocusReportBtn" type="button" hidden>生成任务报告</button>
+                    </div>
                   </div>
                   <div class="result-panel" id="resultPanel">
                     <div class="result-header">
@@ -205,33 +201,6 @@
                 </div>
               </div>
 
-              <div class="stats-row-wrap">
-                <div class="stats-row-head">
-                  <span>治理量化指标</span>
-                  <button type="button" class="metrics-help-btn" id="homeMetricsHelpBtn" title="查看指标口径说明">口径说明</button>
-                </div>
-                <div class="stats-row">
-                <div class="stat-card">
-                  <div class="stat-label">闭环率</div>
-                  <div class="stat-value" id="homeStatClosedLoop">0%</div>
-                  <div class="stat-trend" id="homeStatClosedLoopTrend">工单闭环</div>
-                </div>
-                <div class="stat-card">
-                  <div class="stat-label">平均处置时长</div>
-                  <div class="stat-value" id="homeStatAvgHandle">0m</div>
-                  <div class="stat-trend" id="homeStatAvgHandleTrend">工单口径</div>
-                </div>
-                <div class="stat-card">
-                  <div class="stat-label">夜间覆盖率</div>
-                  <div class="stat-value" id="homeStatNightCoverage">0%</div>
-                  <div class="stat-trend" id="homeStatNightCoverageTrend">20:00-06:00</div>
-                </div>
-                <div class="stat-card">
-                  <div class="stat-label">高风险热区数</div>
-                  <div class="stat-value" id="homeStatHotspotCount">0</div>
-                  <div class="stat-trend" id="homeStatHotspotCountTrend">TopN</div>
-                </div>
-              </div>
             </section>
 
             <section class="panel right">
@@ -257,36 +226,6 @@
                     </div>
                   </dl>
                   <p class="home-gps-hint" id="homeGpsHint"></p>
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="card-title">处置任务清单</div>
-                <div class="alert-list" id="homeAlertList">
-                  <div class="alert-item">
-                    <span class="alert-dot high"></span>
-                    <div>
-                      <div class="alert-title">北门违规停车</div>
-                      <div class="alert-meta">09:12 · 车牌 粤12345</div>
-                    </div>
-                    <span class="alert-state">待处置</span>
-                  </div>
-                  <div class="alert-item">
-                    <span class="alert-dot medium"></span>
-                    <div>
-                      <div class="alert-title">未戴头盔</div>
-                      <div class="alert-meta">09:05 · 教学楼一区</div>
-                    </div>
-                    <span class="alert-state">处理中</span>
-                  </div>
-                  <div class="alert-item">
-                    <span class="alert-dot low"></span>
-                    <div>
-                      <div class="alert-title">占用消防通道</div>
-                      <div class="alert-meta">08:46 · 学生活动中心</div>
-                    </div>
-                    <span class="alert-state">已处理</span>
-                  </div>
                 </div>
               </div>
 
@@ -317,39 +256,46 @@
                 </div>
               </div>
 
-              <div class="card">
-                <div class="card-title">今日数据概览</div>
-                <div class="stats-grid">
-                  <div class="stat-item">
-                    <div class="stat-icon stat-icon-complete">完</div>
-                    <div class="stat-info">
-                      <div class="stat-number" id="homeOverviewResolved">0</div>
-                      <div class="stat-label">已完成</div>
+              <div class="card home-agent-card" id="homeAgentCard">
+                <div class="card-title card-title-split">
+                  <span>智能巡检助手</span>
+                  <span class="card-title-tag" id="homeAgentStatusTag">已接入 DeepSeek V4 Pro</span>
+                </div>
+                <div class="home-agent-body">
+                  <div class="home-agent-messages" id="homeAgentMessages" role="log" aria-live="polite">
+                    <div class="home-agent-msg is-system" data-role="system">
+                      智能巡检助手已就绪。可对话启动电动车违停 / 道路缺陷 / 仪表巡检，查询任务状态，并在完成后生成巡检报告。
                     </div>
                   </div>
-                  <div class="stat-item">
-                    <div class="stat-icon stat-icon-processing">处</div>
-                    <div class="stat-info">
-                      <div class="stat-number" id="homeOverviewProcessing">0</div>
-                      <div class="stat-label">处理中</div>
+                  <form class="home-agent-composer" id="homeAgentComposer">
+                    <textarea
+                      id="homeAgentInput"
+                      class="home-agent-input"
+                      rows="2"
+                      placeholder="输入问题或指令，例如：本轮违停巡检有哪些发现？"
+                    ></textarea>
+                    <div class="home-agent-actions">
+                      <button type="button" class="home-agent-secondary-btn" id="homeAgentClearBtn">清空</button>
+                      <button type="submit" class="home-agent-send-btn" id="homeAgentSendBtn">发送</button>
                     </div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="stat-icon stat-icon-pending">待</div>
-                    <div class="stat-info">
-                      <div class="stat-number" id="homeOverviewPending">0</div>
-                      <div class="stat-label">待处置</div>
-                    </div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="stat-icon stat-icon-online">警</div>
-                    <div class="stat-info">
-                      <div class="stat-number" id="homeOverviewActiveAlerts">0</div>
-                      <div class="stat-label">当前告警</div>
-                    </div>
-                  </div>
+                  </form>
                 </div>
               </div>
+
+              <button
+                type="button"
+                class="home-patrol-reports-entry"
+                id="homePatrolReportsFab"
+                title="查看历史巡检报告"
+              >
+                <span class="home-patrol-reports-entry-icon" aria-hidden="true">📄</span>
+                <span class="home-patrol-reports-entry-copy">
+                  <strong>巡检报告</strong>
+                  <em>查看历史生成的巡检报告</em>
+                </span>
+                <span class="home-patrol-reports-entry-arrow" aria-hidden="true">→</span>
+              </button>
+
             </section>
           </main>
 
@@ -805,7 +751,44 @@
       </div>
     </div>
 
-    <script src="js/load-config.js"></script>
+    <div id="homeTaskReportPrompt" class="home-task-report-prompt" hidden>
+      <div class="home-task-report-prompt-card">
+        <div class="home-task-report-prompt-copy">
+          <strong id="homeTaskReportPromptTitle">任务已完成</strong>
+          <p id="homeTaskReportPromptText">是否立即生成巡检任务报告？</p>
+        </div>
+        <div class="home-task-report-prompt-actions">
+          <button type="button" class="map-focus-btn map-focus-btn-secondary" id="homeTaskReportLaterBtn">稍后</button>
+          <button type="button" class="map-focus-btn" id="homeTaskReportGenerateBtn">生成报告</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="homeTaskReportModal" class="stage-action-modal" hidden>
+      <div class="stage-action-backdrop" data-close-task-report="true"></div>
+      <div class="stage-action-panel home-task-report-panel" role="dialog" aria-modal="true" aria-labelledby="homeTaskReportTitle">
+        <div class="stage-action-head">
+          <div>
+            <strong id="homeTaskReportTitle">巡检任务报告</strong>
+            <p id="homeTaskReportSubtitle">根据本轮任务执行动态自动汇总</p>
+          </div>
+          <button id="homeTaskReportCloseBtn" class="stage-action-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="stage-action-body home-task-report-body">
+          <div class="home-task-report-summary" id="homeTaskReportSummary"></div>
+          <div class="home-task-report-grid" id="homeTaskReportMetrics"></div>
+          <div class="home-task-report-section">
+            <h4>执行时间轴</h4>
+            <div id="homeTaskReportTimeline" class="home-task-report-timeline"></div>
+          </div>
+          <div class="home-task-report-section">
+            <h4>关键发现</h4>
+            <div id="homeTaskReportFindings" class="home-task-report-findings"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+<script src="js/load-config.js"></script>
     <script>
       (function () {
         function loadScript(src, onload) {

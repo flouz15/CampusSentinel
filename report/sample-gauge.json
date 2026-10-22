@@ -1,0 +1,71 @@
+{
+  "scene": "gauge",
+  "sceneTitle": "仪表巡检",
+  "status": "success",
+  "generatedAt": "2026-10-22 11:37:27",
+  "source": "sample",
+  "runId": "SAMPLE-GAUGE",
+  "title": "仪表巡检示例报告",
+  "summary": "示例报告：本轮仪表巡检完成机房与配电间关键表计读取，读数整体正常，1 处需人工复核。",
+  "metrics": [
+    {
+      "label": "巡检场景",
+      "value": "仪表巡检"
+    },
+    {
+      "label": "读数条数",
+      "value": "5"
+    },
+    {
+      "label": "执行时段",
+      "value": "10:20 - 10:48"
+    },
+    {
+      "label": "异常项",
+      "value": "1"
+    }
+  ],
+  "timeline": [
+    {
+      "title": "任务启动",
+      "text": "10:20 启动仪表巡检"
+    },
+    {
+      "title": "现场执行",
+      "text": "10:28 完成配电间第一组表计"
+    },
+    {
+      "title": "结果回传",
+      "text": "10:41 回传 5 条仪表识别结果"
+    },
+    {
+      "title": "任务完成",
+      "text": "10:48 任务正常结束"
+    }
+  ],
+  "findings": [
+    {
+      "title": "仪表 #A1",
+      "text": "电压表读数 220.4V，状态正常"
+    },
+    {
+      "title": "仪表 #A2",
+      "text": "电流表读数 12.8A，状态正常"
+    },
+    {
+      "title": "仪表 #B1",
+      "text": "温度表读数偏高，建议人工复核"
+    },
+    {
+      "title": "仪表 #B2",
+      "text": "压力表读数 0.42MPa，状态正常"
+    },
+    {
+      "title": "仪表 #C1",
+      "text": "液位计读数稳定，状态正常"
+    }
+  ],
+  "filename": "sample-gauge.html",
+  "jsonFilename": "sample-gauge.json",
+  "url": "/report/sample-gauge.html"
+}

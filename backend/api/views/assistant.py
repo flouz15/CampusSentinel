@@ -2,17 +2,22 @@
 
 import json
 import re
+import uuid
 
 import requests
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from ..models import AssistantSessionMessage, UserProfile
+from ..models import AssistantSessionMessage, DetectionRecord, Report, SecurityTicket, UserProfile
 from .common import (
     ASSISTANT_MEMORY_LIMIT,
     ASSISTANT_OLLAMA_BASE,
     ASSISTANT_OLLAMA_MODEL,
+    DEEPSEEK_API_KEY,
+    DEEPSEEK_COMPAT_BASE_URL,
+    DEEPSEEK_MODEL,
+    DEEPSEEK_TIMEOUT_SECONDS,
     LIGHTRAG_API_KEY,
     LIGHTRAG_BASE_URL,
     LIGHTRAG_TIMEOUT_SECONDS,
@@ -20,6 +25,7 @@ from .common import (
     _get_request_data,
     _parse_int,
 )
+from .patrol_assistant import handle_assistant_task_command
 
 def _assistant_tokenize(text):
     return [t.lower() for t in re.findall(r"[\w\u4e00-\u9fff]+", str(text or "")) if t]
@@ -112,6 +118,83 @@ def _assistant_build_history_text(history):
         lines.append(f"{idx}. 用户：{q}\n助手：{a}")
     return "\n\n".join(lines) or "无历史对话。"
 
+
+
+def _assistant_build_messages(question, contexts, history=None, admin_mode=False):
+    prompt_context = "\n".join([
+        f"[{idx + 1}] {ctx['type']} | {ctx['title']} | {ctx['time']}\n{ctx['content']}"
+        for idx, ctx in enumerate(contexts)
+    ]) or "暂无命中上下文，请仅给出谨慎建议并提示用户补充信息。"
+
+    role_prompt = (
+        "你是平安校园智能巡检助手，服务校园安保与巡检值班人员。"
+        "请基于系统上下文回答，语言为简体中文，回答简洁可执行；"
+        "若信息不足必须明确说明根据当前系统数据不足以确认。"
+    )
+    if admin_mode:
+        role_prompt += "当前为管理员分析模式，请突出风险优先级、处置时效与责任建议。"
+
+    messages = [{"role": "system", "content": role_prompt}]
+    for item in (history or [])[-ASSISTANT_MEMORY_LIMIT:]:
+        q = str(item.get("q") or "").strip()
+        a = str(item.get("a") or "").strip()
+        if q:
+            messages.append({"role": "user", "content": q})
+        if a:
+            messages.append({"role": "assistant", "content": a})
+
+    user_prompt = (
+        f"用户问题：{question}\n\n"
+        f"系统上下文：\n{prompt_context}"
+    )
+    messages.append({"role": "user", "content": user_prompt})
+    return messages
+
+
+def _assistant_call_deepseek(question, contexts, history=None, admin_mode=False):
+    if not DEEPSEEK_API_KEY:
+        raise RuntimeError("DEEPSEEK_API_KEY_MISSING")
+
+    payload = {
+        "model": DEEPSEEK_MODEL,
+        "messages": _assistant_build_messages(
+            question,
+            contexts,
+            history=history,
+            admin_mode=admin_mode,
+        ),
+        "temperature": 0.2,
+        "top_p": 0.85,
+        # 关闭思考/推理模式，直接返回最终回答
+        "thinking": {"type": "disabled"},
+    }
+    response = requests.post(
+        f"{DEEPSEEK_COMPAT_BASE_URL}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=DEEPSEEK_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    data = response.json()
+    choices = data.get("choices") or []
+    if not choices:
+        return ""
+    message = choices[0].get("message") or {}
+    content = message.get("content")
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                text_part = item.get("text") or item.get("content") or ""
+                if text_part:
+                    parts.append(str(text_part))
+            elif item:
+                parts.append(str(item))
+        return "\n".join(parts).strip()
+    return str(content or "").strip()
 
 def _assistant_call_local_llm(question, contexts, history=None, admin_mode=False):
     prompt_context = "\n".join([
@@ -356,16 +439,26 @@ def assistant_health(request):
     except Exception as exc:
         rag_error = str(exc)
 
-    llm_ok = False
-    llm_error = ""
+    ollama_ok = False
+    ollama_error = ""
     try:
         resp = requests.get(f"{ASSISTANT_OLLAMA_BASE.rstrip('/')}/api/tags", timeout=3)
-        llm_ok = resp.ok
+        ollama_ok = resp.ok
     except Exception as exc:
-        llm_error = str(exc)
+        ollama_error = str(exc)
+
+    deepseek_configured = bool(DEEPSEEK_API_KEY)
 
     return JsonResponse({
         "success": True,
+        "deepseek": {
+            "provider": "deepseek",
+            "base": DEEPSEEK_COMPAT_BASE_URL,
+            "model": DEEPSEEK_MODEL,
+            "configured": deepseek_configured,
+            "available": deepseek_configured,
+            "error": None if deepseek_configured else "DEEPSEEK_API_KEY_MISSING",
+        },
         "rag": {
             "provider": "lightrag",
             "base": LIGHTRAG_BASE_URL,
@@ -377,8 +470,8 @@ def assistant_health(request):
             "provider": "ollama",
             "base": ASSISTANT_OLLAMA_BASE,
             "model": ASSISTANT_OLLAMA_MODEL,
-            "available": llm_ok,
-            "error": llm_error or None,
+            "available": ollama_ok,
+            "error": ollama_error or None,
         },
     })
 
@@ -416,28 +509,78 @@ def assistant_ask(request):
     provider = "local_fallback"
     llm_error = None
     rag_error = None
+    deepseek_error = None
     answer = ""
     sources = []
     effective_query_mode = _assistant_normalize_query_mode(
         query_mode or mode,
         admin_mode=admin_mode,
     )
+
+    task_command = handle_assistant_task_command(question)
+    if task_command and task_command.get("handled"):
+        answer = str(task_command.get("answer") or "").strip()
+        if answer:
+            _assistant_append_history(
+                session_id=session_id,
+                user=session_user,
+                question=question,
+                answer=answer,
+                mode=("admin" if admin_mode else "default"),
+            )
+            history_size = _assistant_history_size(session_id, user=session_user)
+            return JsonResponse({
+                "success": True,
+                "mode": "patrol_task_command",
+                "provider": "patrol_task_control",
+                "queryMode": effective_query_mode,
+                "analysisMode": "admin" if admin_mode else "default",
+                "sessionId": session_id,
+                "historySize": history_size,
+                "answer": answer,
+                "question": question,
+                "sources": [],
+                "taskAction": task_command.get("action"),
+                "task": task_command.get("task"),
+                "report": task_command.get("report"),
+                "ragError": None,
+                "llmError": None,
+                "deepseekError": None,
+                "model": None,
+                "userRole": profile.role if profile else None,
+                "authed": bool(user),
+            })
+
     try:
-        rag_result = _assistant_call_lightrag(
-            question,
-            mode=query_mode or mode,
-            top_k=top_k,
+        answer = _assistant_call_deepseek(
+            question=question,
+            contexts=contexts,
             history=history,
             admin_mode=admin_mode,
         )
-        answer = rag_result["answer"]
-        sources = rag_result["sources"]
-        effective_query_mode = rag_result["mode"]
         if answer:
-            answer_mode = "lightrag_query"
-            provider = "lightrag"
+            answer_mode = "deepseek_chat"
+            provider = "deepseek"
     except Exception as exc:
-        rag_error = str(exc)
+        deepseek_error = str(exc)
+
+    if not answer:
+        try:
+            rag_result = _assistant_call_lightrag(
+                question,
+                mode=query_mode or mode,
+                top_k=top_k,
+                history=history,
+                admin_mode=admin_mode,
+            )
+            answer = rag_result["answer"]
+            sources = rag_result["sources"]
+            effective_query_mode = rag_result["mode"]
+            if answer:
+                answer_mode = "lightrag_query"
+                provider = "lightrag"
+        except Exception as exc:
+            rag_error = str(exc)
 
     if not answer:
         try:
@@ -493,6 +636,8 @@ def assistant_ask(request):
         "sources": sources,
         "ragError": rag_error,
         "llmError": llm_error,
+        "deepseekError": deepseek_error,
+        "model": DEEPSEEK_MODEL if provider == "deepseek" else None,
         "userRole": profile.role if profile else None,
         "authed": bool(user),
     })

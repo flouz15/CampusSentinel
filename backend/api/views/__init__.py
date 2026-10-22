@@ -10,3 +10,4 @@ from .geo import *  # noqa: F401,F403
 from .realtime import *  # noqa: F401,F403
 from .reports import *  # noqa: F401,F403
 from .robot import *  # noqa: F401,F403
+from .patrol_assistant import *  # noqa: F401,F403

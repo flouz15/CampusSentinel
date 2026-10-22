@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>仪表巡检示例报告</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --card: rgba(12, 28, 48, 0.92);
+      --line: rgba(120, 170, 220, 0.28);
+      --text: #e8f3ff;
+      --muted: #9bb4cc;
+      --accent: #3dbbff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at top, #123255 0%, var(--bg) 55%);
+      color: var(--text);
+      padding: 32px 18px 48px;
+    }
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+    .eyebrow {
+      color: var(--accent);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 8px 0 6px;
+      font-size: 28px;
+    }
+    .meta, .summary, li span {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin: 22px 0;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: rgba(255,255,255,0.03);
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .metric strong {
+      font-size: 18px;
+    }
+    h2 {
+      margin: 28px 0 12px;
+      font-size: 18px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+    li {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.025);
+      display: grid;
+      gap: 4px;
+    }
+    .footer {
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="eyebrow">Campus Patrol Report</div>
+    <h1>仪表巡检示例报告</h1>
+    <div class="meta">场景：仪表巡检 · 任务号：SAMPLE-GAUGE · 生成时间：2026-10-22 11:37:27</div>
+    <p class="summary">示例报告：本轮仪表巡检完成机房与配电间关键表计读取，读数整体正常，1 处需人工复核。</p>
+    <div class="metrics"><div class='metric'><span>巡检场景</span><strong>仪表巡检</strong></div><div class='metric'><span>读数条数</span><strong>5</strong></div><div class='metric'><span>执行时段</span><strong>10:20 - 10:48</strong></div><div class='metric'><span>异常项</span><strong>1</strong></div></div>
+    <h2>执行时间线</h2>
+    <ul><li><strong>任务启动</strong><span>10:20 启动仪表巡检</span></li><li><strong>现场执行</strong><span>10:28 完成配电间第一组表计</span></li><li><strong>结果回传</strong><span>10:41 回传 5 条仪表识别结果</span></li><li><strong>任务完成</strong><span>10:48 任务正常结束</span></li></ul>
+    <h2>关键发现</h2>
+    <ul><li><strong>仪表 #A1</strong><span>电压表读数 220.4V，状态正常</span></li><li><strong>仪表 #A2</strong><span>电流表读数 12.8A，状态正常</span></li><li><strong>仪表 #B1</strong><span>温度表读数偏高，建议人工复核</span></li><li><strong>仪表 #B2</strong><span>压力表读数 0.42MPa，状态正常</span></li><li><strong>仪表 #C1</strong><span>液位计读数稳定，状态正常</span></li></ul>
+    <div class="footer">文件由校园智能巡检助手自动生成，可从首页智能巡检助手下方的「巡检报告」入口访问历史报告。</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "scene": "road-defect",
+  "sceneTitle": "道路缺陷巡检",
+  "status": "success",
+  "generatedAt": "2026-10-22 11:37:27",
+  "source": "sample",
+  "runId": "SAMPLE-ROAD-DEFECT",
+  "title": "道路缺陷巡检示例报告",
+  "summary": "示例报告：本轮道路缺陷巡检覆盖校园主干环路，识别到裂缝与坑槽共 2 类问题，建议纳入设施维修计划。",
+  "metrics": [
+    {
+      "label": "巡检场景",
+      "value": "道路缺陷巡检"
+    },
+    {
+      "label": "发现数量",
+      "value": "4"
+    },
+    {
+      "label": "执行时段",
+      "value": "09:05 - 09:40"
+    },
+    {
+      "label": "风险等级",
+      "value": "中"
+    }
+  ],
+  "timeline": [
+    {
+      "title": "任务启动",
+      "text": "09:05 启动道路缺陷巡检"
+    },
+    {
+      "title": "现场执行",
+      "text": "09:16 完成南门至实验楼路段"
+    },
+    {
+      "title": "结果回传",
+      "text": "09:33 回传裂缝/坑槽检测结果"
+    },
+    {
+      "title": "任务完成",
+      "text": "09:40 任务正常结束"
+    }
+  ],
+  "findings": [
+    {
+      "title": "缺陷 #1",
+      "text": "南门内侧慢车道纵向裂缝，建议跟踪"
+    },
+    {
+      "title": "缺陷 #2",
+      "text": "实验楼路口坑槽，建议优先修补"
+    },
+    {
+      "title": "缺陷 #3",
+      "text": "体育馆旁人行道网裂，建议纳入周检修"
+    },
+    {
+      "title": "缺陷 #4",
+      "text": "停车场入口轻微破损，暂可观察"
+    }
+  ],
+  "filename": "sample-road-defect.html",
+  "jsonFilename": "sample-road-defect.json",
+  "url": "/report/sample-road-defect.html"
+}

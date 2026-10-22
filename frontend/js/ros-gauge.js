@@ -176,6 +176,11 @@
     renderHistory();
     const reading = record.meter_reading || record.meter_reading_value || '无读数';
     addBroadcast('仪表 #' + (record.gauge_index || '--') + ' 读数 ' + reading, statusOf(record) === 'error' ? '识别异常' : '已识别');
+    try {
+      global.dispatchEvent(new CustomEvent('gauge-result-update', {
+        detail: { record: record, records: records.slice() },
+      }));
+    } catch (_) {}
   }
 
   function clearSubs(kind) {
@@ -210,6 +215,16 @@
       if (!value || value === lastControllerStatus) return;
       lastControllerStatus = value;
       addBroadcast('巡检流程：' + translateStatus(value), translateStatus(value));
+      try {
+        global.dispatchEvent(new CustomEvent('gauge-dashboard-state', {
+          detail: {
+            rosConnected: !!(ros && ros.isConnected),
+            controllerStatusRaw: value,
+            controllerStatusZh: translateStatus(value),
+            taskProgressLabel: translateStatus(value),
+          },
+        }));
+      } catch (_) {}
     });
     addSub('base', t.gaugeResult || '/gauge_task/result_json', t.gaugeResultMessageType || 'std_msgs/String', function (msg) {
       onGaugeResult(msg.data);
@@ -282,9 +297,29 @@
           const ok = !!j.success;
           if (hint) { hint.classList.add(ok ? 'is-ok' : 'is-error'); hint.textContent = j.message || (ok ? '任务已启动' : '启动失败'); }
           addBroadcast(j.message || (ok ? '仪表巡检任务已启动' : '任务启动失败'), ok ? '执行中' : '启动失败');
+          try {
+            global.dispatchEvent(new CustomEvent('gauge-dashboard-state', {
+              detail: {
+                rosConnected: !!(ros && ros.isConnected),
+                controllerStatusRaw: ok ? 'RUNNING' : 'FAILURE',
+                controllerStatusZh: ok ? '执行中' : '启动失败',
+                taskProgressLabel: ok ? '仪表巡检执行中' : '启动失败',
+              },
+            }));
+          } catch (_) {}
         }).catch(function () {
           if (hint) { hint.classList.add('is-error'); hint.textContent = '网络错误或无法连接 API'; }
           addBroadcast('无法连接任务启动接口', '启动失败');
+          try {
+            global.dispatchEvent(new CustomEvent('gauge-dashboard-state', {
+              detail: {
+                rosConnected: !!(ros && ros.isConnected),
+                controllerStatusRaw: 'FAILURE',
+                controllerStatusZh: '启动失败',
+                taskProgressLabel: '启动失败',
+              },
+            }));
+          } catch (_) {}
         }).finally(function () { start.disabled = false; });
       });
     }
